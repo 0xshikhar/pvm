@@ -1,17 +1,20 @@
-import "./App.css";
-import polkadotLogo from "./assets/polkadot-logo.svg";
-import { BasketPage } from "./BasketPage";
-
-const DEFAULT_BASKET_ID = 0n;
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { Layout } from "./layouts/Layout";
+import { HomePage } from "./pages/HomePage";
+import { BasketPage } from "./pages/BasketPage";
+import { PortfolioPage } from "./pages/PortfolioPage";
 
 function App() {
   return (
-    <div>
-      <img src={polkadotLogo} className="logo mx-auto h-52 p-4" alt="Polkadot logo" />
-      <div className="container mx-auto p-2 leading-6">
-        <BasketPage basketId={DEFAULT_BASKET_ID} walletClient={null} />
-      </div>
-    </div>
+    <BrowserRouter>
+      <Layout>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/basket/:id" element={<BasketPage />} />
+          <Route path="/portfolio" element={<PortfolioPage />} />
+        </Routes>
+      </Layout>
+    </BrowserRouter>
   );
 }
 
