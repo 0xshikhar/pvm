@@ -1,19 +1,11 @@
 import { useCallback, useState } from "react";
-import { createPublicClient, createWalletClient, http, parseEther } from "viem";
+import { createPublicClient, http, parseEther } from "viem";
 import { polkadotHubTestnet, BASKET_MANAGER_ADDRESS, BASKET_MANAGER_ABI } from "../config/contracts";
 
 const publicClient = createPublicClient({
   chain: polkadotHubTestnet,
   transport: http("https://westend-asset-hub-eth-rpc.polkadot.io"),
 });
-
-export interface AllocationConfig {
-  paraId: number;
-  protocol: string;
-  weightBps: number;
-  depositCall: string;
-  withdrawCall: string;
-}
 
 export interface Basket {
   id: bigint;
@@ -57,16 +49,23 @@ export function useBasketManager() {
     }
   }, []);
 
-  const deposit = useCallback(async (walletClient: ReturnType<typeof createWalletClient>, basketId: bigint, amountDOT: number) => {
+  const deposit = useCallback(async (walletClient: unknown, basketId: bigint, amountDOT: number) => {
     setIsLoading(true);
     setError(null);
     try {
-      const hash = await walletClient.writeContract({
+      const wc = walletClient as { account?: { address: string }; writeContract: (params: unknown) => Promise<`0x${string}`> };
+      const account = wc.account?.address as `0x${string}` | undefined;
+      if (!account) {
+        throw new Error("No account available");
+      }
+      const hash = await wc.writeContract({
         address: BASKET_MANAGER_ADDRESS,
         abi: BASKET_MANAGER_ABI,
         functionName: "deposit",
         args: [basketId],
         value: parseEther(amountDOT.toString()),
+        chain: polkadotHubTestnet,
+        account,
       });
       await publicClient.waitForTransactionReceipt({ hash });
       return hash;
@@ -79,15 +78,22 @@ export function useBasketManager() {
     }
   }, []);
 
-  const withdraw = useCallback(async (walletClient: ReturnType<typeof createWalletClient>, basketId: bigint, tokenAmount: bigint) => {
+  const withdraw = useCallback(async (walletClient: unknown, basketId: bigint, tokenAmount: bigint) => {
     setIsLoading(true);
     setError(null);
     try {
-      const hash = await walletClient.writeContract({
+      const wc = walletClient as { account?: { address: string }; writeContract: (params: unknown) => Promise<`0x${string}`> };
+      const account = wc.account?.address as `0x${string}` | undefined;
+      if (!account) {
+        throw new Error("No account available");
+      }
+      const hash = await wc.writeContract({
         address: BASKET_MANAGER_ADDRESS,
         abi: BASKET_MANAGER_ABI,
         functionName: "withdraw",
         args: [basketId, tokenAmount],
+        chain: polkadotHubTestnet,
+        account,
       });
       await publicClient.waitForTransactionReceipt({ hash });
       return hash;
@@ -100,15 +106,22 @@ export function useBasketManager() {
     }
   }, []);
 
-  const rebalance = useCallback(async (walletClient: ReturnType<typeof createWalletClient>, basketId: bigint) => {
+  const rebalance = useCallback(async (walletClient: unknown, basketId: bigint) => {
     setIsLoading(true);
     setError(null);
     try {
-      const hash = await walletClient.writeContract({
+      const wc = walletClient as { account?: { address: string }; writeContract: (params: unknown) => Promise<`0x${string}`> };
+      const account = wc.account?.address as `0x${string}` | undefined;
+      if (!account) {
+        throw new Error("No account available");
+      }
+      const hash = await wc.writeContract({
         address: BASKET_MANAGER_ADDRESS,
         abi: BASKET_MANAGER_ABI,
         functionName: "rebalance",
         args: [basketId],
+        chain: polkadotHubTestnet,
+        account,
       });
       await publicClient.waitForTransactionReceipt({ hash });
       return hash;
