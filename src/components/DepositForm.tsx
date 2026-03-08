@@ -1,12 +1,9 @@
 import { useState } from "react";
-import { createWalletClient, http } from "viem";
-import { WalletClient } from "viem";
 import { useBasketManager } from "../hooks/useBasketManager";
-import { polkadotHubTestnet } from "../config/contracts";
 
 interface DepositFormProps {
   basketId: bigint;
-  walletClient: WalletClient | null;
+  walletClient: unknown;
 }
 
 export function DepositForm({ basketId, walletClient }: DepositFormProps) {

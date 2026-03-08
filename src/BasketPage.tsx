@@ -1,25 +1,31 @@
 import { useState } from "react";
-import { WalletClient } from "viem";
-import { DepositForm } from "./DepositForm";
-import { AllocationChart } from "./AllocationChart";
-import { XCMStatus } from "./XCMStatus";
-import { BasketCard } from "./BasketCard";
-import { useBasketManager } from "../hooks/useBasketManager";
+import { DepositForm } from "./components/DepositForm";
+import { AllocationChart } from "./components/AllocationChart";
+import { XCMStatus } from "./components/XCMStatus";
+import { BasketCard } from "./components/BasketCard";
+import { useBasketManager } from "./hooks/useBasketManager";
 
 interface BasketPageProps {
   basketId: bigint;
-  walletClient: WalletClient | null;
+  walletClient: unknown;
 }
 
 export function BasketPage({ basketId, walletClient }: BasketPageProps) {
   const { rebalance, isLoading } = useBasketManager();
-  const [xcmMessages, setXcmMessages] = useState([
+  const [xcmMessages, setXcmMessages] = useState<Array<{
+    id: string;
+    fromChain: string;
+    toChain: string;
+    amount: string;
+    status: "pending" | "confirmed" | "failed";
+    explorerUrl?: string;
+  }>>([
     {
       id: "1",
       fromChain: "Polkadot Hub",
       toChain: "Hydration",
       amount: "40",
-      status: "confirmed" as const,
+      status: "confirmed",
       explorerUrl: "https://assethub-westend.subscan.io/",
     },
     {
@@ -27,7 +33,7 @@ export function BasketPage({ basketId, walletClient }: BasketPageProps) {
       fromChain: "Polkadot Hub",
       toChain: "Moonbeam",
       amount: "30",
-      status: "pending" as const,
+      status: "pending",
     },
   ]);
 
