@@ -1,0 +1,77 @@
+import { useState } from "react";
+import { WalletClient } from "viem";
+import { DepositForm } from "./DepositForm";
+import { AllocationChart } from "./AllocationChart";
+import { XCMStatus } from "./XCMStatus";
+import { BasketCard } from "./BasketCard";
+import { useBasketManager } from "../hooks/useBasketManager";
+
+interface BasketPageProps {
+  basketId: bigint;
+  walletClient: WalletClient | null;
+}
+
+export function BasketPage({ basketId, walletClient }: BasketPageProps) {
+  const { rebalance, isLoading } = useBasketManager();
+  const [xcmMessages, setXcmMessages] = useState([
+    {
+      id: "1",
+      fromChain: "Polkadot Hub",
+      toChain: "Hydration",
+      amount: "40",
+      status: "confirmed" as const,
+      explorerUrl: "https://assethub-westend.subscan.io/",
+    },
+    {
+      id: "2",
+      fromChain: "Polkadot Hub",
+      toChain: "Moonbeam",
+      amount: "30",
+      status: "pending" as const,
+    },
+  ]);
+
+  const handleRebalance = async () => {
+    if (!walletClient) return;
+    try {
+      await rebalance(walletClient, basketId);
+      setXcmMessages((prev) =>
+        prev.map((m) => (m.status === "pending" ? { ...m, status: "confirmed" as const } : m))
+      );
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  return (
+    <div className="max-w-6xl mx-auto p-6">
+      <h1 className="text-3xl font-bold text-white mb-8">xDOT Liquidity Basket</h1>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <BasketCard basketId={basketId} />
+        <AllocationChart />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <DepositForm basketId={basketId} walletClient={walletClient} />
+        <XCMStatus messages={xcmMessages} />
+      </div>
+
+      <div className="bg-gray-800 rounded-lg p-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h3 className="text-xl font-bold text-white">Rebalance</h3>
+            <p className="text-gray-400">Trigger rebalancing based on PVM engine recommendations</p>
+          </div>
+          <button
+            onClick={handleRebalance}
+            disabled={isLoading || !walletClient}
+            className="px-6 py-3 bg-purple-600 text-white rounded font-semibold hover:bg-purple-700 disabled:opacity-50"
+          >
+            {isLoading ? "Rebalancing..." : "Rebalance"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
