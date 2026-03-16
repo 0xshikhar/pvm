@@ -19,80 +19,29 @@ async function main() {
 
   console.log("Connecting to:", RPC_URL);
   const provider = new WsProvider(RPC_URL);
-  const api = await ApiPromise.create({ provider });
+  
+  // Use noInitWarn to suppress init warnings
+  const api = await ApiPromise.create({ 
+    provider,
+    noInitWarn: true 
+  });
 
   // Create keyring with ethereum type
-  const keyring = new Keyring({ type: "ethereum" });
+  const keyring = new Keyring({ type: "ethereum", ss58Format: 0 });
   const deployer = keyring.addFromUri(key);
   console.log("Deployer (Polkadot):", deployer.address);
 
   const contractBlob = readFileSync("./contract.polkavm");
   console.log("Contract size:", contractBlob.length, "bytes");
 
-  // Step 1: Map the account first (required for Ethereum addresses)
-  console.log("\n1. Mapping account...");
-  try {
-    const mapTx = api.tx.revive.mapAccount(
-      { Sudo: null } // dispatch through Sudo for testnet
-    );
-    
-    await new Promise((resolve, reject) => {
-      mapTx.signAndSend(deployer, ({ events, status }) => {
-        console.log("  Status:", status.type);
-        if (status.isInBlock || status.isFinalized) {
-          for (const { event } of events) {
-            if (event.section === "revive" && event.method === "AccountMapped") {
-              console.log("  ✓ Account mapped:", event.data[0].toString(), "->", event.data[1].toString());
-            }
-          }
-          resolve();
-        }
-      }).catch(reject);
-    });
-  } catch (e) {
-    console.log("  Account may already be mapped, continuing...");
-  }
-
-  // Step 2: Upload the code
-  console.log("\n2. Uploading code...");
-  const uploadTx = api.tx.revive.uploadCode(
-    { storageDepositLimit: null },
-    contractBlob
-  );
-
-  let codeHash = null;
-  await new Promise((resolve, reject) => {
-    uploadTx.signAndSend(deployer, ({ events, status }) => {
-      console.log("  Status:", status.type);
-      
-      if (status.isInBlock || status.isFinalized) {
-        for (const { event } of events) {
-          if (event.section === "revive" && event.method === "CodeStored") {
-            codeHash = event.data[0].toString();
-            console.log("  ✓ Code hash:", codeHash);
-          }
-          if (event.section === "system" && event.method === "ExtrinsicFailed") {
-            console.log("  ✗ Upload failed:", event.data[0].toString());
-          }
-        }
-        resolve();
-      }
-    }).catch(reject);
-  });
-
-  if (!codeHash) {
-    console.error("Failed to get code hash");
-    process.exit(1);
-  }
-
-  // Step 3: Instantiate the contract
-  console.log("\n3. Instantiating contract...");
-  const instantiateTx = api.tx.revive.instantiate(
+  // Use instantiateWithCode to upload and instantiate in one transaction
+  console.log("\nDeploying contract...");
+  const instantiateTx = api.tx.revive.instantiateWithCode(
     0,                              // value (Balance)
     { gas: 10000000000 },           // weight_limit
     null,                           // storage_deposit_limit
-    codeHash,                       // code_hash
-    "0x00",                         // data (constructor selector)
+    contractBlob,                   // code
+    "0x00",                        // data (constructor selector)
     null                            // salt
   );
 
@@ -102,16 +51,20 @@ async function main() {
       
       if (status.isInBlock || status.isFinalized) {
         for (const { event } of events) {
+          console.log("  Event:", event.section + "." + event.method);
           if (event.section === "revive" && event.method === "Instantiated") {
             console.log("  ✓ Contract address:", event.data[1].toString());
           }
           if (event.section === "system" && event.method === "ExtrinsicFailed") {
-            console.log("  ✗ Instantiate failed:", event.data[0].toString());
+            console.log("  ✗ Extrinsic failed:", JSON.stringify(event.data.toJSON()));
           }
         }
         resolve();
       }
-    }).catch(reject);
+    }).catch((err) => {
+      console.error("Error:", err.message);
+      reject(err);
+    });
   });
 
   await api.disconnect();
