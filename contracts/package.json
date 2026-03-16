@@ -6,7 +6,7 @@
     "compile": "hardhat compile",
     "test": "hardhat test",
     "typechain": "hardhat typechain",
-    "deploy:local": "hardhat run scripts/deploy.ts --network hardhat",
+    "deploy:local": "hardhat run scripts/deploy-local.ts --network hardhat",
     "deploy:paseo": "hardhat run scripts/deploy.ts --network paseoAssetHub",
     "deploy:westend": "hardhat run scripts/deploy.ts --network westendAssetHub",
     "check:balance": "hardhat run scripts/check-balance.ts",
