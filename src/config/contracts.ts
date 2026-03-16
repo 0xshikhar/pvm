@@ -14,6 +14,19 @@ export const polkadotHubTestnet = {
   testnet: true,
 };
 
+export const PARACHAINS = {
+  HYDRA: { id: 2034, name: "Hydration", type: "LP" },
+  MOONBEAM: { id: 2004, name: "Moonbeam", type: "Lending" },
+  ACALA: { id: 2000, name: "Acala", type: "Staking" },
+} as const;
+
+export const PRECOMPILE_ADDRESSES = {
+  XCM: "0x0000000000000000000000000000000000000800",
+  PVM_ENGINE: "0x0000000000000000000000000000000000000900",
+} as const;
+
+export const DEFAULT_CHAINS = [PARACHAINS.HYDRA, PARACHAINS.MOONBEAM, PARACHAINS.ACALA] as const;
+
 export const BASKET_MANAGER_ADDRESS = "0x0000000000000000000000000000000000000001";
 
 export const BASKET_MANAGER_ABI = [
@@ -179,4 +192,77 @@ export const BASKET_TOKEN_ABI = [
     outputs: [{ name: "", type: "bool" }],
     stateMutability: "nonpayable",
   },
+  {
+    type: "function",
+    name: "approve",
+    inputs: [
+      { name: "spender", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    outputs: [{ name: "", type: "bool" }],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "allowance",
+    inputs: [
+      { name: "owner", type: "address" },
+      { name: "spender", type: "address" },
+    ],
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+  },
 ] as const;
+
+export const XCM_PRECOMPILE_ABI = [
+  {
+    type: "function",
+    name: "sendXCM",
+    inputs: [
+      { name: "destParaId", type: "uint32" },
+      { name: "xcmMessage", type: "bytes" },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "teleportAsset",
+    inputs: [
+      { name: "destParaId", type: "uint32" },
+      { name: "amount", type: "uint256" },
+      { name: "beneficiary", type: "address" },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+] as const;
+
+export const PVM_ENGINE_ABI = [
+  {
+    type: "function",
+    name: "optimizeAllocation",
+    inputs: [{ name: "input", type: "bytes" }],
+    outputs: [{ name: "", type: "bytes" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "rebalanceBasket",
+    inputs: [{ name: "input", type: "bytes" }],
+    outputs: [{ name: "", type: "bytes" }],
+    stateMutability: "view",
+  },
+] as const;
+
+export const RPC_URLS = {
+  POLKADOT_HUB: "https://westend-asset-hub-eth-rpc.polkadot.io",
+  HYDRATION: "https://rpc.nice.hydration.cloud",
+  MOONBASE: "https://rpc.api.moonbase.moonbeam.network",
+} as const;
+
+export const EXPLORER_URLS = {
+  POLKADOT_HUB: "https://assethub-westend.subscan.io",
+  HYDRATION: "https://hydration.subscan.io",
+  MOONBASE: "https://moonbase.subscan.io",
+} as const;
