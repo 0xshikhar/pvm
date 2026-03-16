@@ -4,13 +4,15 @@ import { AllocationChart } from "./components/AllocationChart";
 import { XCMStatus } from "./components/XCMStatus";
 import { BasketCard } from "./components/BasketCard";
 import { useBasketManager } from "./hooks/useBasketManager";
+import { useWallet } from "./contexts/WalletContext";
 
 interface BasketPageProps {
   basketId: bigint;
-  walletClient: unknown;
 }
 
-export function BasketPage({ basketId, walletClient }: BasketPageProps) {
+export function BasketPage({ basketId }: BasketPageProps) {
+  const { state } = useWallet();
+  const walletClient = state.evm.walletClient;
   const { rebalance, isLoading } = useBasketManager();
   const [xcmMessages, setXcmMessages] = useState<Array<{
     id: string;
@@ -59,7 +61,7 @@ export function BasketPage({ basketId, walletClient }: BasketPageProps) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <DepositForm basketId={basketId} walletClient={walletClient} />
+        <DepositForm basketId={basketId} basketName="xDOT-LIQ" />
         <XCMStatus messages={xcmMessages} />
       </div>
 
