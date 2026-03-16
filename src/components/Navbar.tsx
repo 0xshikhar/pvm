@@ -94,10 +94,10 @@ export function Navbar() {
 }
 
 function SubWalletButton() {
-  const { address, isAvailable, error, loading, connect, disconnect } = useWallet();
+  const { state, isAvailable, error, loading, connectEVM, disconnect } = useWallet();
   const [showDropdown, setShowDropdown] = useState(false);
 
-  if (address) {
+  if (state.evm.address) {
     return (
       <div className="relative">
         <button
@@ -105,8 +105,8 @@ function SubWalletButton() {
           onClick={() => setShowDropdown((v) => !v)}
           className="flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
         >
-          <span className="h-2 w-2 rounded-full bg-neutral-400" />
-          {truncateAddress(address)}
+          <span className="h-2 w-2 rounded-full bg-emerald-400" />
+          {truncateAddress(state.evm.address)}
         </button>
         {showDropdown && (
           <>
@@ -114,7 +114,7 @@ function SubWalletButton() {
             <div className="absolute right-0 z-50 mt-2 w-56 rounded-xl border border-white/10 bg-neutral-900 py-2 shadow-xl">
               <div className="border-b border-white/10 px-4 py-2">
                 <p className="text-xs text-neutral-500">EVM (SubWallet / MetaMask)</p>
-                <p className="mt-1 truncate font-mono text-sm text-white">{address}</p>
+                <p className="mt-1 truncate font-mono text-sm text-white">{state.evm.address}</p>
               </div>
               <button
                 type="button"
@@ -150,7 +150,7 @@ function SubWalletButton() {
     <div className="relative">
       <button
         type="button"
-        onClick={() => connect()}
+        onClick={() => connectEVM()}
         disabled={loading}
         className="rounded-full border border-white/20 bg-white/5 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10 disabled:opacity-50"
       >
