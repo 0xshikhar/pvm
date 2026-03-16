@@ -1,0 +1,6 @@
+ignoredBuiltDependencies:
+  - cpu-features
+  - esbuild
+  - keccak
+  - protobufjs
+  - ssh2

@@ -27,3 +27,9 @@ dist-ssr
 /contracts/.env
 /pvm-engine/.env
 /frontend/.env
+
+/contracts/artifacts
+/contracts/typechain-types
+/contracts/deployments
+
+/rust/pvm-contract/target

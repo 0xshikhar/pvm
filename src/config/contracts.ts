@@ -1,6 +1,6 @@
-export const polkadotHubTestnet = {
+export const westendAssetHub = {
   id: 420420421,
-  name: "Polkadot Hub Testnet",
+  name: "Westend Asset Hub",
   nativeCurrency: { name: "Westend DOT", symbol: "WND", decimals: 18 },
   rpcUrls: {
     default: { http: ["https://westend-asset-hub-eth-rpc.polkadot.io"] },
@@ -9,6 +9,22 @@ export const polkadotHubTestnet = {
     default: {
       name: "Subscan",
       url: "https://assethub-westend.subscan.io",
+    },
+  },
+  testnet: true,
+};
+
+export const paseoAssetHub = {
+  id: 420420417,
+  name: "Paseo Asset Hub",
+  nativeCurrency: { name: "Paseo DOT", symbol: "PASEO", decimals: 18 },
+  rpcUrls: {
+    default: { http: ["https://services.polkadothub-rpc.com/testnet"] },
+  },
+  blockExplorers: {
+    default: {
+      name: "Blockscout",
+      url: "https://blockscout-passet-hub.parity-testnet.parity.io",
     },
   },
   testnet: true,
@@ -256,13 +272,15 @@ export const PVM_ENGINE_ABI = [
 ] as const;
 
 export const RPC_URLS = {
-  POLKADOT_HUB: "https://westend-asset-hub-eth-rpc.polkadot.io",
+  WESTEND: "https://westend-asset-hub-eth-rpc.polkadot.io",
+  PASEO: "https://services.polkadothub-rpc.com/testnet",
   HYDRATION: "https://rpc.nice.hydration.cloud",
   MOONBASE: "https://rpc.api.moonbase.moonbeam.network",
 } as const;
 
 export const EXPLORER_URLS = {
-  POLKADOT_HUB: "https://assethub-westend.subscan.io",
+  WESTEND: "https://assethub-westend.subscan.io",
+  PASEO: "https://blockscout-passet-hub.parity-testnet.parity.io",
   HYDRATION: "https://hydration.subscan.io",
   MOONBASE: "https://moonbase.subscan.io",
 } as const;

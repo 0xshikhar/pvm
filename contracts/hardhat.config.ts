@@ -1,25 +1,29 @@
 /** Hardhat config for contracts/ (used when running from this directory) */
 import { HardhatUserConfig } from "hardhat/config";
-import "@nomicfoundation/hardhat-toolbox";
+import "@nomicfoundation/hardhat-ethers";
+import "@nomicfoundation/hardhat-chai-matchers";
+import "@parity/hardhat-polkadot";
+import "dotenv/config";
+import "./tasks/deploy";
+
+const privateKey = process.env.PRIVATE_KEY || "";
+const accounts = /^0x[0-9a-fA-F]{64}$/.test(privateKey) ? [privateKey] : [];
 
 const config: HardhatUserConfig = {
-  solidity: {
-    version: "0.8.20",
-    settings: {
-      optimizer: { enabled: true, runs: 200 },
-      evmVersion: "berlin",
-    },
-  },
+  solidity: "0.8.20",
   networks: {
-    polkadotHub: {
-      url: "https://westend-asset-hub-eth-rpc.polkadot.io",
-      chainId: 420420421,
-      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+    hardhat: {},
+    paseoAssetHub: {
+      url: process.env.PASEO_RPC_URL || "https://services.polkadothub-rpc.com/testnet",
+      chainId: 420420417,
+      accounts,
+      polkadot: true,
     },
-    chopsticks: {
-      url: "http://localhost:8545",
+    westendAssetHub: {
+      url: process.env.WESTEND_RPC_URL || "wss://westend-asset-hub-rpc.polkadot.io",
       chainId: 420420421,
-      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      accounts,
+      polkadot: true,
     },
   },
   paths: {

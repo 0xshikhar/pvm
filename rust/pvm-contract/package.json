@@ -1,0 +1,22 @@
+{
+  "name": "tele-basket-pvm",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "make all",
+    "deploy": "node scripts/deploy.js"
+  },
+  "dependencies": {
+    "@polkadot/api": "14.0.1",
+    "@polkadot/keyring": "14.0.1",
+    "@polkadot/util": "14.0.1",
+    "@polkadot/util-crypto": "14.0.1",
+    "ethers": "^6.0.0"
+  },
+  "overrides": {
+    "@polkadot/api": "14.0.1",
+    "@polkadot/keyring": "14.0.1",
+    "@polkadot/util": "14.0.1",
+    "@polkadot/util-crypto": "14.0.1"
+  }
+}

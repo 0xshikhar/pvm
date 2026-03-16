@@ -1,13 +1,34 @@
-import { ethers } from "hardhat";
+import { ethers, network, config } from "hardhat";
 
 async function main() {
-  const [deployer] = await ethers.getSigners();
-  console.log("Deploying with:", deployer.address);
+  console.log("Deploying to:", network.name);
 
-  const BasketManager = await ethers.getContractFactory("BasketManager");
-  const manager = await BasketManager.deploy();
+  let deployer;
+  if (network.name === "hardhat") {
+    [deployer] = await ethers.getSigners();
+  } else {
+    const networkConfig = config.networks[network.name] as any;
+    const accounts = networkConfig?.accounts as string[] | undefined;
+    
+    const privateKey = accounts?.[0] || process.env.PRIVATE_KEY;
+    if (!privateKey) {
+      console.error("Error: No private key found for network:", network.name);
+      console.log("Set PRIVATE_KEY environment variable");
+      process.exit(1);
+    }
+    const provider = ethers.getDefaultProvider(networkConfig.url as string);
+    deployer = new ethers.Wallet(privateKey, provider);
+  }
+  
+  console.log("Deployer:", deployer.address);
+
+  const Factory = await ethers.getContractFactory("BasketManager", deployer);
+  
+  const manager = await Factory.deploy();
+  
   await manager.waitForDeployment();
-  console.log("BasketManager deployed to:", await manager.getAddress());
+  const managerAddress = await manager.getAddress();
+  console.log("BasketManager deployed to:", managerAddress);
 
   const tx = await manager.createBasket(
     "xDOT Liquidity Basket",
@@ -37,7 +58,10 @@ async function main() {
     ]
   );
   await tx.wait();
-  console.log("xDOT-LIQ basket created");
+  console.log("xDOT-LIQ basket created successfully!");
+  console.log("\nUpdate your frontend config with:");
+  console.log(`BASKET_MANAGER_ADDRESS = "${managerAddress}"`);
+  console.log(`NETWORK = "${network.name}"`);
 }
 
 main().catch(console.error);

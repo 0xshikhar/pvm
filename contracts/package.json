@@ -5,8 +5,12 @@
   "scripts": {
     "compile": "hardhat compile",
     "test": "hardhat test",
-    "deploy": "hardhat run scripts/deploy.ts",
-    "typechain": "hardhat typechain"
+    "typechain": "hardhat typechain",
+    "deploy:local": "hardhat run scripts/deploy.ts --network hardhat",
+    "deploy:paseo": "hardhat run scripts/deploy.ts --network paseoAssetHub",
+    "deploy:westend": "hardhat run scripts/deploy.ts --network westendAssetHub",
+    "check:balance": "hardhat run scripts/check-balance.ts",
+    "fund:wallet": "hardhat run scripts/fund-wallet.ts"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
