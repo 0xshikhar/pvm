@@ -1,4 +1,6 @@
-export const polkadotHubTestnet = {
+import { defineChain } from "viem";
+
+export const westendAssetHub = defineChain({
   id: 420420421,
   name: "Westend Asset Hub",
   nativeCurrency: { name: "Westend DOT", symbol: "WND", decimals: 18 },
@@ -12,11 +14,11 @@ export const polkadotHubTestnet = {
     },
   },
   testnet: true,
-};
+});
 
-export const polkadotHubTestnet = {
+export const polkadotHubTestnet = defineChain({
   id: 420420417,
-  name: "Polkadot Hub TestNet",
+  name: "Polkadot Hub TestNet (Paseo)",
   nativeCurrency: { name: "Paseo DOT", symbol: "PAS", decimals: 18 },
   rpcUrls: {
     default: { http: ["https://eth-rpc-testnet.polkadot.io"] },
@@ -28,9 +30,9 @@ export const polkadotHubTestnet = {
     },
   },
   testnet: true,
-};
+});
 
-export const paseoAssetHub = {
+export const paseoAssetHub = defineChain({
   id: 420420417,
   name: "Paseo Asset Hub",
   nativeCurrency: { name: "Paseo DOT", symbol: "PASEO", decimals: 18 },
@@ -44,7 +46,7 @@ export const paseoAssetHub = {
     },
   },
   testnet: true,
-};
+});
 
 export const PARACHAINS = {
   HYDRA: { id: 2034, name: "Hydration", type: "LP" },
@@ -52,21 +54,28 @@ export const PARACHAINS = {
   ACALA: { id: 2000, name: "Acala", type: "Staking" },
 } as const;
 
-// PVM Engine configuration
-// Set VITE_USE_MOCK_PVM=true in .env to use mock for local testing
+export const CHAIN_CONFIG = {
+  id: Number(import.meta.env.VITE_CHAIN_ID) || 420420417,
+  name: "Polkadot Hub TestNet",
+  rpcUrl: import.meta.env.VITE_RPC_URL || "https://eth-rpc-testnet.polkadot.io",
+  explorerUrl: "https://blockscout-passet-hub.parity-testnet.parity.io",
+  explorerName: "Blockscout",
+};
+
 export const USE_MOCK_PVM = import.meta.env.VITE_USE_MOCK_PVM === 'true';
-
-// PVM Code Hash - set after deploying via Substrate API
 export const PVM_CODE_HASH = import.meta.env.VITE_PVM_CODE_HASH || "";
-
-
-// PVM Engine address (on Polkadot Hub TestNet)
 export const PVM_ENGINE_ADDRESS = import.meta.env.VITE_PVM_ENGINE_ADDRESS || "";
-
-// Basket Manager address
 export const BASKET_MANAGER_ADDRESS = import.meta.env.VITE_BASKET_MANAGER_ADDRESS || "";
 
 export const DEFAULT_CHAINS = [PARACHAINS.HYDRA, PARACHAINS.MOONBEAM, PARACHAINS.ACALA] as const;
+
+export const ALLOCATION_CONFIG_ABI = [
+  { name: "paraId", type: "uint32" },
+  { name: "protocol", type: "address" },
+  { name: "weightBps", type: "uint16" },
+  { name: "depositCall", type: "bytes" },
+  { name: "withdrawCall", type: "bytes" },
+] as const;
 
 export const BASKET_MANAGER_ABI = [
   {
@@ -78,13 +87,7 @@ export const BASKET_MANAGER_ABI = [
       {
         name: "allocations",
         type: "tuple[]",
-        components: [
-          { name: "paraId", type: "uint32" },
-          { name: "protocol", type: "address" },
-          { name: "weightBps", type: "uint16" },
-          { name: "depositCall", type: "bytes" },
-          { name: "withdrawCall", type: "bytes" },
-        ],
+        components: ALLOCATION_CONFIG_ABI,
       },
     ],
     outputs: [{ name: "basketId", type: "uint256" }],
@@ -125,6 +128,7 @@ export const BASKET_MANAGER_ABI = [
           { name: "id", type: "uint256" },
           { name: "name", type: "string" },
           { name: "token", type: "address" },
+          { name: "allocations", type: "tuple[]", components: ALLOCATION_CONFIG_ABI },
           { name: "totalDeposited", type: "uint256" },
           { name: "active", type: "bool" },
         ],
@@ -144,6 +148,20 @@ export const BASKET_MANAGER_ABI = [
     name: "nextBasketId",
     inputs: [],
     outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "owner",
+    inputs: [],
+    outputs: [{ name: "", type: "address" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "rebalanceThresholdBps",
+    inputs: [],
+    outputs: [{ name: "", type: "uint16" }],
     stateMutability: "view",
   },
   {
@@ -173,6 +191,15 @@ export const BASKET_MANAGER_ABI = [
       { name: "user", type: "address", indexed: true },
       { name: "tokensBurned", type: "uint256" },
       { name: "amountOut", type: "uint256" },
+    ],
+  },
+  {
+    type: "event",
+    name: "DeploymentDispatched",
+    inputs: [
+      { name: "basketId", type: "uint256", indexed: true },
+      { name: "paraId", type: "uint32" },
+      { name: "amount", type: "uint256" },
     ],
   },
   {
@@ -251,6 +278,26 @@ export const BASKET_TOKEN_ABI = [
     outputs: [{ name: "", type: "uint256" }],
     stateMutability: "view",
   },
+  {
+    type: "function",
+    name: "mint",
+    inputs: [
+      { name: "to", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "burn",
+    inputs: [
+      { name: "from", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
 ] as const;
 
 export const XCM_PRECOMPILE_ABI = [
@@ -296,7 +343,8 @@ export const PVM_ENGINE_ABI = [
 
 export const RPC_URLS = {
   WESTEND: "https://westend-asset-hub-eth-rpc.polkadot.io",
-  PASEO: "https://services.polkadothub-rpc.com/testnet",
+  PASEO: "https://eth-rpc-testnet.polkadot.io",
+  PASEO_SERVICES: "https://services.polkadothub-rpc.com/testnet",
   HYDRATION: "https://rpc.nice.hydration.cloud",
   MOONBASE: "https://rpc.api.moonbase.moonbeam.network",
 } as const;

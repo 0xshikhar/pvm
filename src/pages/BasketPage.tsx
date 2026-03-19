@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { DepositForm } from "../components/DepositForm";
 import { WithdrawForm } from "../components/WithdrawForm";
+import { useBasketManager, type BasketInfo } from "../hooks/useBasketManager";
+import { EXPLORER_URLS, BASKET_MANAGER_ADDRESS, PVM_ENGINE_ADDRESS, USE_MOCK_PVM } from "../config/contracts";
 
 interface Allocation {
   chain: string;
@@ -9,70 +11,73 @@ interface Allocation {
   color: string;
 }
 
-const BASKET_DATA: Record<string, { 
-  name: string; 
-  symbol: string;
-  description: string;
-  allocations: Allocation[];
-  apy: string;
-  risk: "Low" | "Medium" | "High";
-}> = {
-  "0": {
-    name: "xDOT Liquidity Basket",
-    symbol: "xDOT-LIQ",
-    description: "Diversified liquidity provision across top Polkadot DeFi protocols. Earn LP fees and staking rewards.",
-    allocations: [
-      { chain: "Hydration LP", weight: 40, color: "#E6007A" },
-      { chain: "Moonbeam Lending", weight: 30, color: "#53CBC9" },
-      { chain: "Acala Staking", weight: 30, color: "#FF4B4B" },
-    ],
-    apy: "12.4%",
-    risk: "Medium",
-  },
-  "1": {
-    name: "Stable Yield Basket",
-    symbol: "xSTABLE",
-    description: "Focus on stablecoin yields with minimal impermanent loss risk.",
-    allocations: [
-      { chain: "Hydration Stable", weight: 50, color: "#E6007A" },
-      { chain: "Moonbeam Liquid Staking", weight: 50, color: "#53CBC9" },
-    ],
-    apy: "8.2%",
-    risk: "Low",
-  },
-  "2": {
-    name: "High Risk Basket",
-    symbol: "xRISK",
-    description: "Leveraged positions for maximum yield. High risk of liquidation.",
-    allocations: [
-      { chain: "Moonbeam Leverage", weight: 60, color: "#53CBC9" },
-      { chain: "Acala Leverage", weight: 40, color: "#FF4B4B" },
-    ],
-    apy: "24.8%",
-    risk: "High",
-  },
+const DEFAULT_BASKET_DATA = { 
+  name: "xDOT Liquidity Basket",
+  symbol: "xDOT-LIQ",
+  description: "Diversified liquidity provision across top Polkadot DeFi protocols. Earn LP fees and staking rewards.",
+  allocations: [
+    { chain: "Hydration LP", weight: 40, color: "#E6007A" },
+    { chain: "Moonbeam Lending", weight: 30, color: "#53CBC9" },
+    { chain: "Acala Staking", weight: 30, color: "#FF4B4B" },
+  ],
+  apy: "12.4%",
+  risk: "Medium" as const,
+};
+
+const CHAIN_COLORS: Record<number, string> = {
+  2034: "#E6007A",
+  2004: "#53CBC9",
+  2000: "#FF4B4B",
 };
 
 export function BasketPage() {
   const { id } = useParams<{ id: string }>();
   const basketId = id ? BigInt(id) : 0n;
+  const { getBasketInfo } = useBasketManager();
 
   const [activeTab, setActiveTab] = useState<"deposit" | "withdraw">("deposit");
-  const [basketData, setBasketData] = useState(BASKET_DATA["0"]);
+  const [basketInfo, setBasketInfo] = useState<BasketInfo | null>(null);
+  const [basketData, setBasketData] = useState(DEFAULT_BASKET_DATA);
   const [userBalance] = useState("0");
   const [userDeposit] = useState("0");
+  const [isLoadingBasket, setIsLoadingBasket] = useState(true);
 
   useEffect(() => {
-    if (id && BASKET_DATA[id]) {
-      setBasketData(BASKET_DATA[id]);
+    async function fetchBasket() {
+      setIsLoadingBasket(true);
+      try {
+        const info = await getBasketInfo(basketId);
+        if (info) {
+          setBasketInfo(info);
+          setBasketData({
+            name: info.name,
+            symbol: info.symbol,
+            description: `Multi-chain basket deployed across ${info.allocations.length} protocols.`,
+            allocations: info.allocations.map((a, i) => ({
+              chain: a.chain,
+              weight: a.weight,
+              color: CHAIN_COLORS[a.paraId] || `hsl(${i * 120}, 70%, 50%)`,
+            })),
+            apy: "12.4%",
+            risk: "Medium",
+          });
+        }
+      } catch (err) {
+        console.error("Error fetching basket info:", err);
+      } finally {
+        setIsLoadingBasket(false);
+      }
     }
-  }, [id]);
+    fetchBasket();
+  }, [id, basketId, getBasketInfo]);
 
   const riskColors = {
     Low: "bg-emerald-500/20 text-emerald-400",
     Medium: "bg-amber-500/20 text-amber-400",
     High: "bg-red-500/20 text-red-400",
   };
+
+  const explorerUrl = EXPLORER_URLS.PASEO;
 
   return (
     <div className="min-h-screen bg-neutral-950 pt-20">
@@ -99,6 +104,11 @@ export function BasketPage() {
                   <span className={`px-3 py-1 rounded-full text-sm font-medium ${riskColors[basketData.risk]}`}>
                     {basketData.risk} Risk
                   </span>
+                  {isLoadingBasket && (
+                    <span className="px-3 py-1 rounded-full text-sm font-medium bg-blue-500/20 text-blue-400">
+                      Loading...
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -111,11 +121,13 @@ export function BasketPage() {
                 </div>
                 <div className="rounded-xl border border-white/5 bg-white/5 p-4">
                   <p className="text-neutral-400 text-sm">TVL</p>
-                  <p className="text-2xl font-bold text-white">$1.25M</p>
+                  <p className="text-2xl font-bold text-white">
+                    {basketInfo?.totalDeposited ? `${parseFloat(basketInfo.totalDeposited).toFixed(2)} DOT` : "$1.25M"}
+                  </p>
                 </div>
                 <div className="rounded-xl border border-white/5 bg-white/5 p-4">
                   <p className="text-neutral-400 text-sm">Token Price</p>
-                  <p className="text-2xl font-bold text-white">1.02 DOT</p>
+                  <p className="text-2xl font-bold text-white">1.00 DOT</p>
                 </div>
               </div>
 
@@ -170,7 +182,14 @@ export function BasketPage() {
               tokenSymbol={basketData.symbol}
             />
 
-            <XCMStatusCard />
+            <ContractStatusCard 
+              basketManager={BASKET_MANAGER_ADDRESS}
+              pvmEngine={PVM_ENGINE_ADDRESS}
+              isMockPVM={USE_MOCK_PVM}
+              explorerUrl={explorerUrl}
+            />
+
+            <XCMStatusCard allocations={basketInfo?.allocations} />
 
             <div className="rounded-3xl border border-white/10 bg-neutral-900 p-6">
               <h3 className="text-lg font-bold text-white mb-4">Basket Info</h3>
@@ -178,6 +197,10 @@ export function BasketPage() {
                 <div className="flex justify-between">
                   <span className="text-neutral-400">Chain</span>
                   <span className="text-white">Polkadot Hub</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-neutral-400">Network</span>
+                  <span className="text-white">Paseo TestNet</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-neutral-400">Protocol</span>
@@ -188,9 +211,22 @@ export function BasketPage() {
                   <span className="text-white">{basketData.symbol}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-neutral-400">Min Deposit</span>
-                  <span className="text-white">1 DOT</span>
+                  <span className="text-neutral-400">Basket ID</span>
+                  <span className="text-white">{basketId.toString()}</span>
                 </div>
+                {basketInfo?.token && (
+                  <div className="flex justify-between">
+                    <span className="text-neutral-400">Token Address</span>
+                    <a 
+                      href={`${explorerUrl}/address/${basketInfo.token}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-400 text-xs hover:underline"
+                    >
+                      {basketInfo.token.slice(0, 6)}...{basketInfo.token.slice(-4)}
+                    </a>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -264,49 +300,116 @@ function UserPositionCard({ userDeposit, tokenSymbol }: { userDeposit: string; t
       <div className="space-y-4">
         <div>
           <p className="text-neutral-400 text-sm">Deposited</p>
-          <p className="text-2xl font-bold text-white">{userDeposit || "100.00"} DOT</p>
+          <p className="text-2xl font-bold text-white">{userDeposit || "0.00"} DOT</p>
         </div>
         <div>
           <p className="text-neutral-400 text-sm">Token Balance</p>
-          <p className="text-2xl font-bold text-white">{userDeposit || "100.00"} {tokenSymbol}</p>
+          <p className="text-2xl font-bold text-white">{userDeposit || "0.00"} {tokenSymbol}</p>
         </div>
         <div>
           <p className="text-neutral-400 text-sm">Value</p>
-          <p className="text-2xl font-bold text-emerald-400">$102.00</p>
+          <p className="text-2xl font-bold text-emerald-400">$0.00</p>
         </div>
       </div>
     </div>
   );
 }
 
-function XCMStatusCard() {
-  const messages = [
-    { chain: "Hydration", status: "confirmed" as const, amount: "40 DOT" },
-    { chain: "Moonbeam", status: "confirmed" as const, amount: "30 DOT" },
-    { chain: "Acala", status: "pending" as const, amount: "30 DOT" },
+function ContractStatusCard({ 
+  basketManager, 
+  pvmEngine, 
+  isMockPVM,
+  explorerUrl 
+}: { 
+  basketManager: string; 
+  pvmEngine: string; 
+  isMockPVM: boolean;
+  explorerUrl: string;
+}) {
+  const contracts = [
+    {
+      name: "BasketManager",
+      address: basketManager,
+      status: basketManager ? "deployed" : "not-deployed",
+    },
+    {
+      name: "PVM Engine",
+      address: pvmEngine,
+      status: !basketManager ? "not-deployed" : pvmEngine ? (isMockPVM ? "mock" : "deployed") : "not-deployed",
+    },
+  ];
+
+  const statusStyles = {
+    deployed: "bg-emerald-500/20 text-emerald-400",
+    mock: "bg-amber-500/20 text-amber-400",
+    "not-deployed": "bg-red-500/20 text-red-400",
+  };
+
+  const statusLabels = {
+    deployed: "Deployed",
+    mock: "Mock Mode",
+    "not-deployed": "Not Deployed",
+  };
+
+  return (
+    <div className="rounded-3xl border border-white/10 bg-neutral-900 p-6">
+      <h3 className="text-lg font-bold text-white mb-4">Contract Status</h3>
+      <div className="space-y-4">
+        {contracts.map((contract) => (
+          <div key={contract.name}>
+            <div className="flex justify-between items-center mb-1">
+              <span className="text-neutral-400 text-sm">{contract.name}</span>
+              <span className={`px-2 py-0.5 rounded text-xs ${statusStyles[contract.status as keyof typeof statusStyles]}`}>
+                {statusLabels[contract.status as keyof typeof statusLabels]}
+              </span>
+            </div>
+            {contract.address && (
+              <a
+                href={`${explorerUrl}/address/${contract.address}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-400 text-xs hover:underline font-mono"
+              >
+                {contract.address.slice(0, 10)}...{contract.address.slice(-8)}
+              </a>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function XCMStatusCard({ allocations }: { allocations?: Array<{ paraId: number; chain: string; weight: number }> }) {
+  const messages = allocations?.map((a) => ({
+    chain: a.chain,
+    paraId: a.paraId,
+    status: "ready" as const,
+    weight: a.weight,
+  })) || [
+    { chain: "Hydration LP", paraId: 2034, status: "ready" as const, weight: 40 },
+    { chain: "Moonbeam Lending", paraId: 2004, status: "ready" as const, weight: 30 },
+    { chain: "Acala Staking", paraId: 2000, status: "ready" as const, weight: 30 },
   ];
 
   const statusColors = {
-    confirmed: "text-emerald-400",
+    ready: "text-emerald-400",
     pending: "text-amber-400",
     failed: "text-red-400",
   };
 
   return (
     <div className="rounded-3xl border border-white/10 bg-neutral-900 p-6">
-      <h3 className="text-lg font-bold text-white mb-4">XCM Status</h3>
+      <h3 className="text-lg font-bold text-white mb-4">XCM Destinations</h3>
       <div className="space-y-3">
         {messages.map((msg, i) => (
           <div key={i} className="flex items-center justify-between">
             <div className="flex items-center">
-              <span className={`w-2 h-2 rounded-full mr-2 ${
-                msg.status === "confirmed" ? "bg-emerald-400" :
-                msg.status === "pending" ? "bg-amber-400" : "bg-red-400"
-              }`} />
+              <span className="w-2 h-2 rounded-full mr-2 bg-emerald-400" />
               <span className="text-neutral-300">{msg.chain}</span>
             </div>
             <span className={`text-sm ${statusColors[msg.status]}`}>
-              {msg.status === "confirmed" ? "✓" : "⏳"} {msg.amount}
+              {msg.weight}% via XCM
             </span>
           </div>
         ))}

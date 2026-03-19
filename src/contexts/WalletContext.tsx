@@ -9,6 +9,9 @@ export interface WalletState {
     walletClient: WalletClient | null;
     chainId: number | null;
     isConnected: boolean;
+    isCorrectChain: boolean;
+    needsSwitchChain: boolean;
+    targetChainId: number;
   };
   substrate: {
     account: SubWalletAccount | null;
@@ -24,12 +27,10 @@ interface WalletContextValue {
   connectEVM: () => Promise<void>;
   connectSubstrate: () => Promise<void>;
   disconnect: () => void;
-  switchChain: (chainId: number) => Promise<void>;
+  switchChain: (chainId?: number) => Promise<void>;
 }
 
 const WalletContext = createContext<WalletContextValue | null>(null);
-
-const POLKADOT_HUB_CHAIN_ID = 420420421;
 
 export function WalletProvider({ children }: { children: ReactNode }) {
   const evm = useEVMWallet();
@@ -40,6 +41,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     setGlobalError(null);
     try {
       await evm.connect();
+      if (evm.needsSwitchChain) {
+        setGlobalError(`Please switch to Polkadot Hub TestNet (Chain ID: ${evm.targetChainId}) to continue.`);
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : "EVM connection failed";
       setGlobalError(message);
@@ -62,40 +66,27 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     setGlobalError(null);
   }, [evm, substrate]);
 
-  const switchChain = useCallback(async (chainId: number) => {
-    if (!evm.walletClient) {
-      throw new Error("Wallet not connected");
-    }
-    const provider = (evm.walletClient as unknown as { transport: { cache: { _internalType: string } } }).transport;
-    if (!provider) {
-      throw new Error("Provider not available");
-    }
-    
-    const injectedProvider = (window as Window & { ethereum?: { request: (args: { method: string; params?: unknown[] }) => Promise<void> } }).ethereum;
-    if (!injectedProvider) {
-      throw new Error("No injected provider");
-    }
-
+  const switchChain = useCallback(async (chainId?: number) => {
     try {
-      await injectedProvider.request({
-        method: "wallet_switchEthereumChain",
-        params: [{ chainId: `0x${chainId.toString(16)}` }],
-      });
-    } catch (switchError) {
-      if ((switchError as { code?: number }).code === 4902) {
-        throw new Error("Chain not added to wallet");
-      }
-      throw switchError;
+      await evm.switchChain(chainId);
+      setGlobalError(null);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to switch chain";
+      setGlobalError(message);
+      throw err;
     }
-  }, [evm.walletClient]);
+  }, [evm]);
 
   const value: WalletContextValue = {
     state: {
       evm: {
         address: evm.address,
         walletClient: evm.walletClient,
-        chainId: evm.address ? POLKADOT_HUB_CHAIN_ID : null,
+        chainId: evm.chainId,
         isConnected: evm.isConnected,
+        isCorrectChain: evm.isCorrectChain,
+        needsSwitchChain: evm.needsSwitchChain || false,
+        targetChainId: evm.targetChainId,
       },
       substrate: {
         account: substrate.account,

@@ -1,23 +1,58 @@
 import { useCallback, useState } from "react";
-import { createPublicClient, http, parseEther } from "viem";
+import { createPublicClient, http, parseEther, formatEther } from "viem";
 import { polkadotHubTestnet, BASKET_MANAGER_ADDRESS, BASKET_MANAGER_ABI } from "../config/contracts";
+
+const RPC_URL = import.meta.env.VITE_RPC_URL || "https://eth-rpc-testnet.polkadot.io";
 
 const publicClient = createPublicClient({
   chain: polkadotHubTestnet,
-  transport: http("https://westend-asset-hub-eth-rpc.polkadot.io"),
+  transport: http(RPC_URL),
 });
+
+export interface Allocation {
+  paraId: number;
+  protocol: string;
+  weightBps: number;
+  depositCall: string;
+  withdrawCall: string;
+}
 
 export interface Basket {
   id: bigint;
   name: string;
   token: string;
+  allocations: Allocation[];
   totalDeposited: bigint;
+  active: boolean;
+}
+
+export interface BasketInfo {
+  basketId: bigint;
+  name: string;
+  symbol: string;
+  token: string;
+  totalDeposited: string;
+  allocations: Array<{ paraId: number; chain: string; weight: number }>;
   active: boolean;
 }
 
 export function useBasketManager() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const getNextBasketId = useCallback(async (): Promise<bigint> => {
+    try {
+      const result = await publicClient.readContract({
+        address: BASKET_MANAGER_ADDRESS,
+        abi: BASKET_MANAGER_ABI,
+        functionName: "nextBasketId",
+      });
+      return result;
+    } catch (err) {
+      console.error("Error fetching nextBasketId:", err);
+      return 0n;
+    }
+  }, []);
 
   const getBasket = useCallback(async (basketId: bigint): Promise<Basket | null> => {
     try {
@@ -27,12 +62,42 @@ export function useBasketManager() {
         functionName: "getBasket",
         args: [basketId],
       });
-      return result as Basket;
+      return result as unknown as Basket;
     } catch (err) {
       console.error("Error fetching basket:", err);
       return null;
     }
   }, []);
+
+  const getBasketInfo = useCallback(async (basketId: bigint): Promise<BasketInfo | null> => {
+    try {
+      const basket = await getBasket(basketId);
+      if (!basket) return null;
+
+      const chainNames: Record<number, string> = {
+        2034: "Hydration LP",
+        2004: "Moonbeam Lending",
+        2000: "Acala Staking",
+      };
+
+      return {
+        basketId: basket.id,
+        name: basket.name,
+        symbol: basket.name.replace(" Basket", "").toUpperCase(),
+        token: basket.token,
+        totalDeposited: formatEther(basket.totalDeposited),
+        allocations: basket.allocations.map((a) => ({
+          paraId: Number(a.paraId),
+          chain: chainNames[Number(a.paraId)] || `Para ${a.paraId}`,
+          weight: Number(a.weightBps) / 100,
+        })),
+        active: basket.active,
+      };
+    } catch (err) {
+      console.error("Error fetching basket info:", err);
+      return null;
+    }
+  }, [getBasket]);
 
   const getBasketNAV = useCallback(async (basketId: bigint): Promise<bigint> => {
     try {
@@ -136,11 +201,14 @@ export function useBasketManager() {
 
   return {
     getBasket,
+    getBasketInfo,
     getBasketNAV,
+    getNextBasketId,
     deposit,
     withdraw,
     rebalance,
     isLoading,
     error,
+    isConfigured: Boolean(BASKET_MANAGER_ADDRESS),
   };
 }
