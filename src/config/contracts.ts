@@ -1,4 +1,4 @@
-export const westendAssetHub = {
+export const polkadotHubTestnet = {
   id: 420420421,
   name: "Westend Asset Hub",
   nativeCurrency: { name: "Westend DOT", symbol: "WND", decimals: 18 },
@@ -58,6 +58,7 @@ export const USE_MOCK_PVM = import.meta.env.VITE_USE_MOCK_PVM === 'true';
 
 // PVM Code Hash - set after deploying via Substrate API
 export const PVM_CODE_HASH = import.meta.env.VITE_PVM_CODE_HASH || "";
+
 
 // PVM Engine address (on Polkadot Hub TestNet)
 export const PVM_ENGINE_ADDRESS = import.meta.env.VITE_PVM_ENGINE_ADDRESS || "";
