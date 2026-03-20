@@ -69,6 +69,24 @@ These accounts control funds on remote chains:
 | Moonbeam (2004) | `0x98b71d9da7f556addb143b901cc911867242e374f27f89d24b693974723e20aa` | [View](https://moonbase.subscan.io/account/0x98b71d9da7f556addb143b901cc911867242e374f27f89d24b693974723e20aa) |
 | Acala (2000) | `0x98b71d9da7f556addb143b901cc911867242e374f27f89d24b693974723e20aa` | [View](https://acala.subscan.io/account/0x98b71d9da7f556addb143b901cc911867242e374f27f89d24b693974723e20aa) |
 
+## How to Verify XCM Actually Delivered:
+
+### Method 1: Check Transaction Logs
+1. Open: https://blockscout-testnet.polkadot.io/tx/<your-tx-hash>
+2. Click "Logs" tab
+3. Look for XCMMessageSent events
+4. Copy the messageHash value
+
+### Method 2: Check Target Chain Explorers
+- Hydration: https://hydration.subscan.io/xcm/<message-hash>
+- Moonbeam: https://moonbase.subscan.io/xcm/<message-hash>  
+- Acala: https://acala.subscan.io/xcm/<message-hash>
+
+### Method 3: Check Sovereign Account Balances
+Hydration: https://hydration.subscan.io/account/0x98b71d9da7f556addb143b901cc911867242e374f27f89d24b693974723e20aa
+Moonbeam:  https://moonbase.subscan.io/account/0x98b71d9da7f556addb143b901cc911867242e374f27f89d24b693974723e20aa
+Acala:     https://acala.subscan.io/account/0x98b71d9da7f556addb143b901cc911867242e374f27f89d24b693974723e20aa
+
 **⚠️ Note**: Accounts need funding on each remote chain for XCM fees.
 
 ---

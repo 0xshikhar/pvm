@@ -16,6 +16,38 @@ PolkaBasket does not just aggregate yield, it creates a new primitive for the ec
 
 ---
 
+## ⚠️ Current Status: Dual XCM Modes
+
+PolkaBasket now supports **two XCM operation modes** based on your environment:
+
+### 🟢 Local Mode (`XCM_MODE=local`)
+- **Full XCM functionality** - Real cross-chain messaging enabled
+- For development environments with working XCM precompile
+- Actual deployments to Hydration, Moonbeam, Acala
+- Requires local testnet with functional XCM
+
+### 🟡 Testnet Demo Mode (`XCM_MODE=testnet`)
+- **Simulated XCM** for demonstration purposes
+- Real transactions on Paseo testnet
+- XCM events simulated (since Paseo precompile is non-functional)
+- Funds safely held on Asset Hub
+- UI shows what cross-chain deployment would look like
+
+### Configuration
+
+Set via environment variable:
+```bash
+# For local development with working XCM
+VITE_XCM_MODE=local
+
+# For Paseo testnet demo (default)
+VITE_XCM_MODE=testnet
+```
+
+Auto-detection: If `VITE_NETWORK=paseo`, defaults to `testnet` mode.
+
+---
+
 ## Table of Contents
 
 1. [Architecture Overview](#1-architecture-overview)
