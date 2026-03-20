@@ -12,7 +12,9 @@ export function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navLinks = [
-    { path: "/baskets", label: "Baskets" },
+    { path: "/baskets", label: "Explore" },
+    { path: "/baskets-list", label: "Listings" },
+    { path: "/create-basket", label: "Create" },
     { path: "/portfolio", label: "Portfolio" },
   ];
 
@@ -38,8 +40,8 @@ export function Navbar() {
                 key={link.path}
                 to={link.path}
                 className={`rounded-full px-4 py-2.5 text-sm font-medium transition-colors ${isActive(link.path)
-                    ? "border-b-2 border-white text-white"
-                    : "text-neutral-400 hover:bg-white/5 hover:text-white"
+                  ? "border-b-2 border-white text-white"
+                  : "text-neutral-400 hover:bg-white/5 hover:text-white"
                   }`}
               >
                 {link.label}
@@ -76,8 +78,8 @@ export function Navbar() {
                   to={link.path}
                   onClick={() => setMobileMenuOpen(false)}
                   className={`rounded-xl px-4 py-3 text-sm font-medium transition-colors ${isActive(link.path)
-                      ? "border-b-2 border-white text-white"
-                      : "text-neutral-400 hover:bg-white/5 hover:text-white"
+                    ? "border-b-2 border-white text-white"
+                    : "text-neutral-400 hover:bg-white/5 hover:text-white"
                     }`}
                 >
                   {link.label}

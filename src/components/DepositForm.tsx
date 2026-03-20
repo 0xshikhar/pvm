@@ -16,8 +16,8 @@ const CHAIN_NAMES: Record<number, string> = {
   [APP_CHAIN_ID]: APP_CHAIN_NAME,
 };
 
-export function DepositForm({ 
-  basketId, 
+export function DepositForm({
+  basketId,
   basketName = "xDOT-LIQ",
   allocations = [
     { chain: "Hydration LP", paraId: PARACHAINS.HYDRA.id, pct: 40 },
@@ -53,22 +53,22 @@ export function DepositForm({
       console.warn("[DepositForm] Invalid deposit attempt:", { amount, hasWallet: !!walletClient });
       return;
     }
-    
+
     if (!isCorrectChain) {
       console.warn("[DepositForm] Wrong chain:", { currentChain: chainId, targetChain: targetChainId });
       setLocalError(`Please switch to ${APP_CHAIN_NAME} first`);
       return;
     }
-    
+
     console.log("[DepositForm] 🚀 Starting deposit...");
     console.log("[DepositForm] 📊 Amount:", amount, APP_NATIVE_SYMBOL);
     console.log("[DepositForm] 🎯 Basket ID:", basketId.toString());
     console.log("[DepositForm] 🌐 Wallet:", walletClient.account?.address);
-    
+
     setTxStatus("pending");
     setTxHash(null);
     setLocalError(null);
-    
+
     try {
       console.log("[DepositForm] 📡 Calling BasketManager.deposit()...");
       console.log("[DepositForm] 📝 This will:");
@@ -77,17 +77,17 @@ export function DepositForm({
       allocations.forEach(a => {
         console.log(`[DepositForm]      - ${a.chain} (Para ${a.paraId}): ${((parseFloat(amount) * a.pct) / 100).toFixed(4)} ${APP_NATIVE_SYMBOL}`);
       });
-      
+
       const result = await deposit(
         walletClient as WalletClient,
         basketId,
         amount
       );
-      
+
       console.log("[DepositForm] ✅ Deposit successful!");
       console.log("[DepositForm] 🔗 Transaction hash:", result.hash);
       console.log("[DepositForm] 📊 XCM Events:", result.xcmEvents?.length || 0);
-      
+
       if (result.xcmEvents && result.xcmEvents.length > 0) {
         console.log("[DepositForm] 🎯 XCM Status:");
         result.xcmEvents.forEach((event: { type: string; paraId?: number; messageHash?: string }, idx: number) => {
@@ -98,7 +98,7 @@ export function DepositForm({
             console.log(`[DepositForm]    ❌ [${idx + 1}] XCM to Para ${event.paraId}: FAILED`);
           }
         });
-        
+
         console.log("[DepositForm] 🔍 How to verify XCM delivery:");
         console.log("[DepositForm]    1. Open transaction on explorer");
         console.log("[DepositForm]    2. Copy message hash from logs");
@@ -111,7 +111,7 @@ export function DepositForm({
         console.warn("[DepositForm] ⚠️ NO XCM EVENTS - Funds may be held locally!");
         console.warn("[DepositForm] ⚠️ Check if XCM precompile is deployed");
       }
-      
+
       setTxHash(result.hash);
       setTxStatus("success");
       setAmount("");
@@ -132,18 +132,17 @@ export function DepositForm({
   return (
     <div className="bg-gray-800 rounded-lg p-6">
       <h3 className="text-xl font-bold mb-4 text-white">Deposit {APP_NATIVE_SYMBOL}</h3>
-      
+
       {/* XCM Mode Indicator */}
       {IS_TESTNET_XCM && (
         <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 mb-4">
           <div className="flex items-start gap-3">
-            <span className="text-amber-400 text-lg">🎭</span>
+            <span className="text-amber-400 text-lg">🛠️</span>
             <div>
-              <h4 className="text-amber-300 font-semibold text-sm mb-1">Demo Mode</h4>
+              <h4 className="text-amber-300 font-semibold text-sm mb-1">Testnet (Simulated XCM)</h4>
               <p className="text-amber-200/80 text-xs leading-relaxed">
-                XCM events are simulated for demonstration purposes. Real XCM is unavailable on Paseo testnet. 
-                Your deposits will be safely held on Asset Hub and tokens minted 1:1. 
-                The UI shows what cross-chain deployment would look like.
+                XCM events are simulated for demonstration purposes. Real XCM is unavailable on Paseo testnet.
+                Use Local XCM for actual cross-chain deployment.
               </p>
             </div>
           </div>
@@ -157,7 +156,7 @@ export function DepositForm({
             <div>
               <h4 className="text-emerald-300 font-semibold text-sm mb-1">Full XCM Enabled</h4>
               <p className="text-emerald-200/80 text-xs leading-relaxed">
-                Real XCM functionality is active. Your deposits will be automatically deployed 
+                Real XCM functionality is active. Your deposits will be automatically deployed
                 across parachains via cross-chain messaging.
               </p>
             </div>
@@ -280,12 +279,12 @@ export function DepositForm({
           disabled={isLoading || !isValidAmount || !isConnected || txStatus === "pending" || switchingChain}
           className="w-full py-3 bg-blue-600 text-white rounded font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
-          {!isConnected 
-            ? "Connect Wallet to Deposit" 
+          {!isConnected
+            ? "Connect Wallet to Deposit"
             : needsSwitchChain
               ? `Switch to ${APP_CHAIN_NAME} (${targetChainId})`
-              : isLoading || txStatus === "pending" 
-                ? "Depositing..." 
+              : isLoading || txStatus === "pending"
+                ? "Depositing..."
                 : `Mint ${basketName} Token`
           }
         </button>

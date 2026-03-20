@@ -57,7 +57,7 @@ export async function simulateXCMEvents(
 ): Promise<XCMEvent[]> {
   const events: XCMEvent[] = [];
   const timestamp = Date.now();
-  
+
   // Always add deposit event
   events.push({
     type: "deposited",
@@ -76,17 +76,17 @@ export async function simulateXCMEvents(
   for (const allocation of allocations) {
     const paraAmount = (totalAmount * BigInt(allocation.weightBps)) / 10000n;
     const isSuccess = Math.random() < config.successRate;
-    
+
     if (isSuccess) {
       const messageHash = generateDemoMessageHash(allocation.paraId, basketId, timestamp);
-      
+
       events.push({
         type: "sent",
         paraId: allocation.paraId,
         messageHash,
         amount: paraAmount,
       });
-      
+
       events.push({
         type: "deployment_dispatched",
         basketId,
@@ -99,7 +99,7 @@ export async function simulateXCMEvents(
         paraId: allocation.paraId,
         reason: "Simulated XCM failure for demo",
       });
-      
+
       events.push({
         type: "deployment_failed",
         basketId,
@@ -139,10 +139,10 @@ export async function simulateXCMWithdrawEvents(
   for (const allocation of allocations) {
     const paraAmount = (tokenAmount * BigInt(allocation.weightBps)) / 10000n;
     const isSuccess = Math.random() < config.successRate;
-    
+
     if (isSuccess) {
       const messageHash = generateDemoMessageHash(allocation.paraId, basketId, timestamp + 1);
-      
+
       events.push({
         type: "sent",
         paraId: allocation.paraId,
@@ -172,7 +172,7 @@ export function getXCMStatusLabel(): { label: string; variant: "success" | "warn
   if (IS_LOCAL_XCM) {
     return { label: "Full XCM Enabled", variant: "success" };
   } else if (IS_TESTNET_XCM) {
-    return { label: "Demo Mode (Simulated XCM)", variant: "warning" };
+    return { label: "Testnet (Simulated XCM)", variant: "warning" };
   }
   return { label: "XCM Unavailable", variant: "info" };
 }
@@ -185,7 +185,7 @@ export function getChainAllocations(
   allocations: Array<{ chain: string; paraId: number; pct: number }>
 ): Array<{ chain: string; paraId: number; amount: string; status: "active" | "simulated" | "disabled" }> {
   const amountNum = parseFloat(totalAmount) || 0;
-  
+
   return allocations.map(a => ({
     chain: a.chain,
     paraId: a.paraId,

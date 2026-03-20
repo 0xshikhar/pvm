@@ -22,7 +22,9 @@
     "deploy:xcm-precompile": "hardhat --network paseo run scripts/deploy-xcm-precompile.ts",
     "verify:sovereign": "hardhat --network paseo run scripts/verify-sovereign.ts",
     "verify:xcm": "hardhat --network paseo run scripts/verify-xcm.ts",
-    "test:xcm-deposit": "hardhat --network paseo run scripts/test-xcm-deposit.js"
+    "test:xcm-deposit": "hardhat --network paseo run scripts/test-xcm-deposit.js",
+    "init:baskets": "hardhat --network paseo run scripts/init-baskets.ts",
+    "init:baskets:local": "hardhat --network hardhat run scripts/init-baskets.ts"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",

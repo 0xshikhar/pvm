@@ -267,6 +267,51 @@ export const BASKET_MANAGER_ABI = [
     stateMutability: "nonpayable",
   },
   {
+    type: "function",
+    name: "setXCMPrecompile",
+    inputs: [{ name: "precompile", type: "address" }],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "estimateXCMWeight",
+    inputs: [{ name: "message", type: "bytes" }],
+    outputs: [
+      { name: "refTime", type: "uint64" },
+      { name: "proofSize", type: "uint64" },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "getAllocationCount",
+    inputs: [{ name: "basketId", type: "uint256" }],
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "getAllocation",
+    inputs: [
+      { name: "basketId", type: "uint256" },
+      { name: "index", type: "uint256" },
+    ],
+    outputs: [
+      {
+        type: "tuple",
+        components: [
+          { name: "paraId", type: "uint32" },
+          { name: "protocol", type: "address" },
+          { name: "weightBps", type: "uint16" },
+          { name: "depositCall", type: "bytes" },
+          { name: "withdrawCall", type: "bytes" },
+        ],
+      },
+    ],
+    stateMutability: "view",
+  },
+  {
     type: "event",
     name: "BasketCreated",
     inputs: [
@@ -327,6 +372,45 @@ export const BASKET_MANAGER_ABI = [
     inputs: [
       { name: "paraId", type: "uint32", indexed: true },
       { name: "reason", type: "string" },
+    ],
+  },
+  {
+    type: "event",
+    name: "DeploymentFailed",
+    inputs: [
+      { name: "basketId", type: "uint256", indexed: true },
+      { name: "paraId", type: "uint32" },
+      { name: "amount", type: "uint256" },
+      { name: "reason", type: "string" },
+    ],
+  },
+  {
+    type: "event",
+    name: "XCMStatusChanged",
+    inputs: [
+      { name: "enabled", type: "bool" },
+    ],
+  },
+  {
+    type: "event",
+    name: "XCMPrecompileUpdated",
+    inputs: [
+      { name: "precompile", type: "address" },
+    ],
+  },
+  {
+    type: "event",
+    name: "PVMEngineUpdated",
+    inputs: [
+      { name: "engine", type: "address" },
+    ],
+  },
+  {
+    type: "event",
+    name: "XCMWeightEstimated",
+    inputs: [
+      { name: "refTime", type: "uint64" },
+      { name: "proofSize", type: "uint64" },
     ],
   },
 ] as const;
@@ -427,7 +511,7 @@ export const XCM_PRECOMPILE_ABI = [
       { name: "destParaId", type: "uint32" },
       { name: "xcmMessage", type: "bytes" },
     ],
-    outputs: [],
+    outputs: [{ name: "messageHash", type: "bytes32" }],
     stateMutability: "nonpayable",
   },
   {
@@ -438,8 +522,22 @@ export const XCM_PRECOMPILE_ABI = [
       { name: "amount", type: "uint256" },
       { name: "beneficiary", type: "address" },
     ],
-    outputs: [],
+    outputs: [{ name: "ticket", type: "bytes32" }],
     stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "queryXCMStatus",
+    inputs: [{ name: "messageHash", type: "bytes32" }],
+    outputs: [{ name: "status", type: "string" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "getDestinationFee",
+    inputs: [{ name: "destParaId", type: "uint32" }],
+    outputs: [{ name: "fee", type: "uint256" }],
+    stateMutability: "view",
   },
 ] as const;
 

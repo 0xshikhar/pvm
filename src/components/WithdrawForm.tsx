@@ -24,8 +24,8 @@ const CHAIN_NAMES: Record<number, string> = {
   [APP_CHAIN_ID]: APP_CHAIN_NAME,
 };
 
-export function WithdrawForm({ 
-  basketId, 
+export function WithdrawForm({
+  basketId,
   tokenSymbol = "xDOT-LIQ",
   userTokenBalance = "0",
   allocations = [
@@ -62,13 +62,13 @@ export function WithdrawForm({
       console.warn("[WithdrawForm] Invalid withdraw attempt:", { amount, hasWallet: !!walletClient });
       return;
     }
-    
+
     if (!isCorrectChain) {
       console.warn("[WithdrawForm] Wrong chain:", { currentChain: chainId, targetChain: targetChainId });
       setLocalError(`Please switch to ${APP_CHAIN_NAME} first`);
       return;
     }
-    
+
     console.log("[WithdrawForm] 🚀 Starting withdrawal...");
     console.log("[WithdrawForm] 📊 Token amount:", amount, tokenSymbol);
     console.log("[WithdrawForm] 🎯 Basket ID:", basketId.toString());
@@ -83,27 +83,27 @@ export function WithdrawForm({
       console.log(`[WithdrawForm]      - ${chain?.name || `Para ${a.paraId}`}: ${pasAmount} ${APP_NATIVE_SYMBOL}`);
     });
     console.log("[WithdrawForm]   3. Transfer native PAS back to user");
-    
+
     setTxStatus("pending");
     setTxHash(null);
     setLocalError(null);
-    
+
     console.log("[WithdrawForm] ⏳ Processing withdrawal...");
-    
+
     try {
       const tokenAmount = parseEther(amount);
       console.log("[WithdrawForm] 📡 Calling BasketManager.withdraw()...");
-      
+
       const result = await withdraw(
         walletClient as WalletClient,
         basketId,
         tokenAmount
       );
-      
+
       console.log("[WithdrawForm] ✅ Withdrawal successful!");
       console.log("[WithdrawForm] 🔗 Transaction hash:", result.hash);
       console.log("[WithdrawForm] 📊 XCM Events:", result.xcmEvents?.length || 0);
-      
+
       if (result.xcmEvents && result.xcmEvents.length > 0) {
         console.log("[WithdrawForm] 🎯 XCM Status:");
         result.xcmEvents.forEach((event: { type: string; paraId?: number; messageHash?: string }, idx: number) => {
@@ -119,7 +119,7 @@ export function WithdrawForm({
       } else {
         console.warn("[WithdrawForm] ⚠️ NO XCM EVENTS - Local fallback used");
       }
-      
+
       console.log("[WithdrawForm] 💰 PAS returned:", amount, APP_NATIVE_SYMBOL);
       console.log("[WithdrawForm] 🔍 Check explorer:", getExplorerTxUrl(result.hash));
       console.log("[WithdrawForm] 📝 Note: Actual XCM execution on target chains takes time");
@@ -135,7 +135,7 @@ export function WithdrawForm({
         const chain = TARGET_CHAINS[a.paraId];
         console.log(`[WithdrawForm]       - ${chain?.name}: ${chain?.explorer}/account/0x98b71d9da7f556addb143b901cc911867242e374f27f89d24b693974723e20aa`);
       });
-      
+
       setTxHash(result.hash);
       setTxStatus("success");
       setAmount("");
@@ -163,16 +163,16 @@ export function WithdrawForm({
   return (
     <div className="bg-gray-800 rounded-lg p-6">
       <h3 className="text-xl font-bold mb-4 text-white">Withdraw {APP_NATIVE_SYMBOL}</h3>
-      
+
       {/* XCM Mode Indicator */}
       {IS_TESTNET_XCM && (
         <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 mb-4">
           <div className="flex items-start gap-3">
-            <span className="text-amber-400 text-lg">🎭</span>
+            <span className="text-amber-400 text-lg">🛠️</span>
             <div>
-              <h4 className="text-amber-300 font-semibold text-sm mb-1">Demo Mode</h4>
+              <h4 className="text-amber-300 font-semibold text-sm mb-1">Testnet Mode</h4>
               <p className="text-amber-200/80 text-xs leading-relaxed">
-                XCM events are simulated for demonstration purposes. Real XCM is unavailable on Paseo testnet. 
+                XCM events are simulated for demonstration purposes. Real XCM is unavailable on Paseo testnet.
                 Withdrawals will burn your tokens and return PAS from local holdings on Asset Hub.
               </p>
             </div>
@@ -187,7 +187,7 @@ export function WithdrawForm({
             <div>
               <h4 className="text-emerald-300 font-semibold text-sm mb-1">Full XCM Enabled</h4>
               <p className="text-emerald-200/80 text-xs leading-relaxed">
-                Real XCM functionality is active. Withdrawals will dispatch XCM messages to retrieve 
+                Real XCM functionality is active. Withdrawals will dispatch XCM messages to retrieve
                 funds from parachains.
               </p>
             </div>
@@ -306,14 +306,14 @@ export function WithdrawForm({
           disabled={isLoading || !isValidAmount || !isConnected || !hasBalance || txStatus === "pending" || switchingChain}
           className="w-full py-3 bg-red-600 text-white rounded font-semibold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
-          {!isConnected 
-            ? "Connect Wallet to Withdraw" 
+          {!isConnected
+            ? "Connect Wallet to Withdraw"
             : needsSwitchChain
               ? `Switch to ${APP_CHAIN_NAME} (${targetChainId})`
               : !hasBalance
                 ? "No Token Balance"
                 : isLoading || txStatus === "pending"
-                  ? "Withdrawing..." 
+                  ? "Withdrawing..."
                   : `Withdraw ${APP_NATIVE_SYMBOL}`
           }
         </button>
