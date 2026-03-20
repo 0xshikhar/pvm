@@ -49,28 +49,55 @@ export function DepositForm({
   }, [switchChain, targetChainId]);
 
   const handleDeposit = useCallback(async () => {
-    if (!amount || parseFloat(amount) <= 0 || !walletClient) return;
+    if (!amount || parseFloat(amount) <= 0 || !walletClient) {
+      console.warn("[DepositForm] Invalid deposit attempt:", { amount, hasWallet: !!walletClient });
+      return;
+    }
     
     if (!isCorrectChain) {
+      console.warn("[DepositForm] Wrong chain:", { currentChain: chainId, targetChain: targetChainId });
       setLocalError(`Please switch to ${APP_CHAIN_NAME} first`);
       return;
     }
+    
+    console.log("[DepositForm] 🚀 Starting deposit...");
+    console.log("[DepositForm] 📊 Amount:", amount, APP_NATIVE_SYMBOL);
+    console.log("[DepositForm] 🎯 Basket ID:", basketId.toString());
+    console.log("[DepositForm] 🌐 Wallet:", walletClient.account?.address);
     
     setTxStatus("pending");
     setTxHash(null);
     setLocalError(null);
     
     try {
+      console.log("[DepositForm] 📡 Calling BasketManager.deposit()...");
+      console.log("[DepositForm] 📝 This will:");
+      console.log("[DepositForm]   1. Mint basket tokens 1:1");
+      console.log("[DepositForm]   2. Dispatch XCM messages to:");
+      allocations.forEach(a => {
+        console.log(`[DepositForm]      - ${a.chain} (Para ${a.paraId}): ${((parseFloat(amount) * a.pct) / 100).toFixed(4)} ${APP_NATIVE_SYMBOL}`);
+      });
+      
       const hash = await deposit(
         walletClient as WalletClient,
         basketId,
         amount
       );
+      
+      console.log("[DepositForm] ✅ Deposit successful!");
+      console.log("[DepositForm] 🔗 Transaction hash:", hash);
+      console.log("[DepositForm] 📊 XCM Status: Messages dispatched to", allocations.length, "parachains");
+      console.log("[DepositForm] 🎯 Next: Monitor XCM status per chain...");
+      console.log("[DepositForm] 🔍 Check explorers:");
+      allocations.forEach(a => {
+        console.log(`[DepositForm]    - ${a.chain}: https://hydration.subscan.io/account/...`);
+      });
+      
       setTxHash(hash);
       setTxStatus("success");
       setAmount("");
     } catch (err) {
-      console.error("Deposit error:", err);
+      console.error("[DepositForm] ❌ Deposit error:", err);
       const errMsg = err instanceof Error ? err.message : "Deposit failed";
       if (errMsg.includes("chain") || errMsg.includes("Chain")) {
         setLocalError(`Wrong network! Please switch to ${APP_CHAIN_NAME} (ID: ${targetChainId})`);
@@ -78,7 +105,7 @@ export function DepositForm({
         setTxStatus("error");
       }
     }
-  }, [amount, basketId, walletClient, deposit, isCorrectChain, targetChainId]);
+  }, [amount, basketId, walletClient, deposit, isCorrectChain, targetChainId, allocations]);
 
   const isValidAmount = amount && parseFloat(amount) > 0;
   const displayError = localError || (needsSwitchChain ? `Wrong network (${CHAIN_NAMES[chainId || 0] || `Chain ${chainId}`}). Please switch to ${APP_CHAIN_NAME}.` : null);

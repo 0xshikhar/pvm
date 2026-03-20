@@ -1,0 +1,13 @@
+[unstable]
+build-std = ["core", "alloc"]
+build-std-features = ["panic_immediate_abort"]
+
+[build]
+target = "riscv64emac-unknown-none-polkavm"
+rustflags = ["-C", "link-arg=-Tlink.x"]
+
+[target.riscv64emac-unknown-none-polkavm]
+rustflags = ["-C", "target-cpu=generic-rv64", "-C", "target-feature=+m,+a,+c"]
+
+[profile.release]
+panic = "abort"

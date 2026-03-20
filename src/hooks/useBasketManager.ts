@@ -227,15 +227,26 @@ export function useBasketManager() {
   const deposit = useCallback(async (walletClient: unknown, basketId: bigint, amountDOT: string | number) => {
     setIsLoading(true);
     setError(null);
+    console.log("[useBasketManager] 🏦 Deposit initiated");
+    console.log("[useBasketManager] 📊 Amount:", amountDOT, "PAS");
+    console.log("[useBasketManager] 🎯 Basket ID:", basketId.toString());
+    
     try {
       const wc = walletClient as { account?: { address: string }; writeContract: (params: unknown) => Promise<`0x${string}`> };
       const account = wc.account?.address as `0x${string}` | undefined;
       if (!account) {
         throw new Error("No account available");
       }
+      console.log("[useBasketManager] 👤 Account:", account);
+      
       await assertBasketReady(basketId);
+      console.log("[useBasketManager] ✅ Basket ready");
+      
       const normalizedAmount = typeof amountDOT === "number" ? amountDOT.toString() : amountDOT;
       const value = parseUnits(normalizedAmount, APP_NATIVE_DECIMALS);
+      console.log("[useBasketManager] 💰 Value (wei):", value.toString());
+      
+      console.log("[useBasketManager] 🔮 Simulating transaction...");
       const { request } = await publicClient.simulateContract({
         address: BASKET_MANAGER_ADDRESS,
         abi: BASKET_MANAGER_ABI,
@@ -246,14 +257,25 @@ export function useBasketManager() {
         chain: APP_CHAIN,
         account,
       });
+      console.log("[useBasketManager] ✅ Simulation successful");
 
+      console.log("[useBasketManager] 📡 Sending transaction...");
       const hash = await writeLegacyContract(walletClient, request as Record<string, unknown>);
+      console.log("[useBasketManager] 🔗 Transaction sent:", hash);
+      
+      console.log("[useBasketManager] ⏳ Waiting for receipt...");
       await waitForReceipt(hash);
+      console.log("[useBasketManager] ✅ Transaction confirmed!");
+      console.log("[useBasketManager] 🎯 XCM messages dispatched to parachains");
+      console.log("[useBasketManager] 🔍 Explorer:", `https://blockscout-testnet.polkadot.io/tx/${hash}`);
+      
       return hash;
     } catch (err) {
       let errorMessage = normalizeErrorMessage(err, "Deposit failed");
+      console.error("[useBasketManager] ❌ Deposit error:", errorMessage);
       if (errorMessage.toLowerCase().includes("execution reverted")) {
         const readiness = await getXcmReadiness();
+        console.log("[useBasketManager] 🔍 XCM Readiness:", readiness);
         if (readiness.xcmEnabled === true && !readiness.hasCode) {
           errorMessage = `Deposit reverted because XCM is enabled but precompile ${readiness.xcmPrecompile} has no code on ${APP_CHAIN.name}. Disable XCM as owner (setXCMEnabled(false)) or redeploy the latest BasketManager.`;
         } else if (readiness.xcmEnabled === undefined && !readiness.hasCode) {
@@ -270,13 +292,22 @@ export function useBasketManager() {
   const withdraw = useCallback(async (walletClient: unknown, basketId: bigint, tokenAmount: bigint) => {
     setIsLoading(true);
     setError(null);
+    console.log("[useBasketManager] 🏦 Withdraw initiated");
+    console.log("[useBasketManager] 📊 Token amount:", tokenAmount.toString());
+    console.log("[useBasketManager] 🎯 Basket ID:", basketId.toString());
+    
     try {
       const wc = walletClient as { account?: { address: string }; writeContract: (params: unknown) => Promise<`0x${string}`> };
       const account = wc.account?.address as `0x${string}` | undefined;
       if (!account) {
         throw new Error("No account available");
       }
+      console.log("[useBasketManager] 👤 Account:", account);
+      
       await assertBasketReady(basketId);
+      console.log("[useBasketManager] ✅ Basket ready");
+      
+      console.log("[useBasketManager] 🔮 Simulating transaction...");
       const { request } = await publicClient.simulateContract({
         address: BASKET_MANAGER_ADDRESS,
         abi: BASKET_MANAGER_ABI,
@@ -286,12 +317,23 @@ export function useBasketManager() {
         chain: APP_CHAIN,
         account,
       });
+      console.log("[useBasketManager] ✅ Simulation successful");
 
+      console.log("[useBasketManager] 📡 Sending transaction...");
       const hash = await writeLegacyContract(walletClient, request as Record<string, unknown>);
+      console.log("[useBasketManager] 🔗 Transaction sent:", hash);
+      
+      console.log("[useBasketManager] ⏳ Waiting for receipt...");
       await waitForReceipt(hash);
+      console.log("[useBasketManager] ✅ Transaction confirmed!");
+      console.log("[useBasketManager] 🎯 XCM withdraw messages dispatched");
+      console.log("[useBasketManager] 💰 PAS returned to user");
+      console.log("[useBasketManager] 🔍 Explorer:", `https://blockscout-testnet.polkadot.io/tx/${hash}`);
+      
       return hash;
     } catch (err) {
       const errorMessage = normalizeErrorMessage(err, "Withdraw failed");
+      console.error("[useBasketManager] ❌ Withdraw error:", errorMessage);
       setError(errorMessage);
       throw new Error(errorMessage);
     } finally {
