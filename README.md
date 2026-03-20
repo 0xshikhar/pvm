@@ -97,7 +97,8 @@ PolkaBasket allows users to deposit DOT/PASE0 once and receive a basket token re
 
 | Component | Purpose |
 |-----------|---------|
-| `pages/BasketPage.tsx` | Main basket detail page with deposit/withdraw tabs |
+| `pages/BasketsPage.tsx` | Swiper-based basket discovery with "Swipe-to-Invest" modals |
+| `pages/BasketPage.tsx` | Deep-dive basket detail page with full stats |
 | `components/DepositForm.tsx` | DOT deposit form with wallet integration |
 | `components/WithdrawForm.tsx` | Token burn + DOT withdrawal form |
 | `components/RebalancePanel.tsx` | PVM engine rebalance trigger UI |
@@ -129,6 +130,21 @@ PolkaBasket allows users to deposit DOT/PASE0 once and receive a basket token re
 
 ---
 
+## 2.5 Supported Tokens
+
+TeleBasket supports 15 multichain tokens across 3 categories for testing:
+
+### Assets (8 tokens)
+- **PAS** (Paseo DOT), **aUSD** (Acala Dollar), **LDOT** (Liquid DOT), **iBTC** (Interlay BTC), **HDX** (Hydration), **GLMR** (Moonbeam), **PDEX** (Polkadex), **CFG** (Centrifuge)
+
+### Famous Cross-Chain (4 tokens)
+- **USDC**, **USDT**, **WBTC**, **DAI**
+
+### Meme & Community (3 tokens)
+- **PUP** (PolkaPup), **🌕** (DOT Moon), **HODL** (HODL Gang)
+
+---
+
 ## 3. Frontend Flow
 
 ### Wallet Connection
@@ -147,6 +163,24 @@ PolkaBasket allows users to deposit DOT/PASE0 once and receive a basket token re
    │
    ▼
 4. WalletContext stores walletClient for all contract calls
+```
+
+### "Swipe-to-Invest" Discovery (BasketsPage)
+
+```
+1. User swipes right on a Basket Card
+   │
+   ▼
+2. DepositWithdrawModal opens immediately
+   │
+   ▼
+3. User selects "Deposit" or "Withdraw" tab
+   │
+   ▼
+4. Form embeds directly with glassmorphism UI
+   │
+   ▼
+5. Transaction executes via embedded logic
 ```
 
 ### Deposit Flow
