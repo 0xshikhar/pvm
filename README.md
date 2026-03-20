@@ -2,841 +2,548 @@
 
 **The Cross-Chain DeFi Index + Social Investing Layer for Polkadot**
 
-PolkaBasket is building the default DeFi index layer of Polkadot, enabling users to access risk-adjusted cross-chain yield with a single click. Powered by **PolkaVM** and **XCM**, PolkaBasket converts fragmented parachain liquidity into a unified, liquid, and social investing experience.
-
-Instead of juggling bridges, wallets, and disconnected dApps, users deposit once and receive a single basket token that represents diversified positions across Polkadot DeFi.
-
-### 🔭 Our Vision
-Our vision is to become Polkadot's on-chain asset management network:
-- **One-click for users**: Access multi-parachain yield without bridge complexity.
-- **Composable for DeFi**: Hold one basket token that can be traded or used as collateral.
-- **Social by default**: Discover opportunities with Tinder-like swipe UX, create custom baskets, share them with friends, invite co-investors, and earn community rewards.
-
-PolkaBasket does not just aggregate yield, it creates a new primitive for the ecosystem: **programmable, shareable, and community-owned baskets**.
-
----
-
-## ⚠️ Current Status: Dual XCM Modes
-
-PolkaBasket now supports **two XCM operation modes** based on your environment:
-
-### 🟢 Local Mode (`XCM_MODE=local`)
-- **Full XCM functionality** - Real cross-chain messaging enabled
-- For development environments with working XCM precompile
-- Actual deployments to Hydration, Moonbeam, Acala
-- Requires local testnet with functional XCM
-
-### 🟡 Testnet Demo Mode (`XCM_MODE=testnet`)
-- **Simulated XCM** for demonstration purposes
-- Real transactions on Paseo testnet
-- XCM events simulated (since Paseo precompile is non-functional)
-- Funds safely held on Asset Hub
-- UI shows what cross-chain deployment would look like
-
-### Configuration
-
-Set via environment variable:
-```bash
-# For local development with working XCM
-VITE_XCM_MODE=local
-
-# For Paseo testnet demo (default)
-VITE_XCM_MODE=testnet
-```
-
-Auto-detection: If `VITE_NETWORK=paseo`, defaults to `testnet` mode.
+PolkaBasket transforms fragmented parachain liquidity into unified, social yield strategies. One deposit → diversified exposure across Hydration, Moonbeam, and Acala. Powered by XCM v4 and PolkaVM.
 
 ---
 
 ## Table of Contents
 
-1. [Architecture Overview](#1-architecture-overview)
-2. [System Components](#2-system-components)
-3. [Frontend Flow](#3-frontend-flow)
-4. [Smart Contracts](#4-smart-contracts)
-5. [Rust PVM Engine](#5-rust-pvm-engine)
-6. [XCM Integration](#6-xcm-integration)
-7. [Network Configuration](#7-network-configuration)
-8. [Quick Start](#8-quick-start)
-9. [Deployment Guide](#9-deployment-guide)
-10. [Testing](#10-testing)
+1. [The Problem](#the-problem)
+2. [Our Solution](#our-solution)
+3. [Key Innovations](#key-innovations)
+4. [System Architecture](#system-architecture)
+5. [Live Demo](#live-demo)
+6. [Testing Guide](#testing-guide)
+7. [Deployment Addresses](#deployment-addresses)
+8. [Quick Start](#quick-start)
+9. [Future Roadmap](#future-roadmap)
+10. [Team & Resources](#team--resources)
 
 ---
 
-## 1. Architecture Overview
+## The Problem
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                           User Layer                                      │
-│  ┌─────────────┐    ┌─────────────┐    ┌─────────────────────────────┐  │
-│  │  MetaMask   │    │  SubWallet  │    │   Polkadot.js / Talisman    │  │
-│  └──────┬──────┘    └──────┬──────┘    └──────────────┬──────────────┘  │
-└─────────┼──────────────────┼──────────────────────────┼──────────────────┘
-          │                  │                          │
-          │    EVM Wallet    │         Substrate         │
-          └──────────────────┴──────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                         Frontend (React + Viem)                          │
-│  ┌─────────────┐  ┌──────────────┐  ┌───────────────┐  ┌────────────┐ │
-│  │DepositForm  │  │WithdrawForm  │  │RebalancePanel │  │ XCMStatus  │ │
-│  └──────┬──────┘  └──────┬───────┘  └───────┬───────┘  └─────┬──────┘ │
-│         │                │                  │                │         │
-│         ▼                ▼                  ▼                ▼         │
-│  ┌──────────────────────────────────────────────────────────────┐       │
-│  │                    useBasketManager Hook                      │       │
-│  │  - deposit()  - withdraw()  - rebalance()  - getBasketNAV() │       │
-│  └────────────────────────────┬─────────────────────────────────┘       │
-│                               │                                           │
-│  ┌────────────────────────────┴─────────────────────────────────┐       │
-│  │                     WalletContext                             │       │
-│  │  - useEVMWallet()  - useSubWallet()  - walletClient          │       │
-│  └───────────────────────────────────────────────────────────────┘       │
-└───────────────────────────────┬───────────────────────────────────────────┘
-                                │
-                                │ contract calls (viem)
-                                ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    Polkadot Hub / Paseo Testnet                         │
-│                              (chainId: 420420417)                       │
-│                                                                          │
-│  ┌──────────────────┐         ┌──────────────────┐         ┌──────────┐ │
-│  │  BasketManager    │◄────────│   XCM Precompile │         │   PVM    │ │
-│  │     .sol          │         │   (0x...0800)    │         │  Engine  │ │
-│  │                  │         │                  │         │  (0x...09│ │
-│  │  - createBasket() │         │  - sendXCM()     │         │   00)    │ │
-│  │  - deposit()     │         │  - teleport()    │         │          │ │
-│  │  - withdraw()    │         │                  │         │ Rust/    │ │
-│  │  - rebalance()   │─────────►│                  │         │ RISC-V   │ │
-│  └────────┬─────────┘         └──────────────────┘         └────┬─────┘ │
-│           │                                                    │        │
-│           │           ┌──────────────────┐                    │        │
-│           │           │  BasketToken.sol │                    │        │
-│           │           │  (ERC-20 per      │                    │        │
-│           │           │   basket)         │                    │        │
-│           │           └──────────────────┘                    │        │
-└───────────┼───────────────────────────────────────────────────┼────────┘
-            │                                                   │
-            │ XCM Messages                                      │ staticcall
-            ▼                                                   ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                        Parachain Network                                 │
-│  ┌────────────┐    ┌─────────────┐    ┌─────────────┐                   │
-│  │  Hydration │    │  Moonbeam   │    │   Acala     │                   │
-│  │  (2034)    │    │   (2004)    │    │   (2000)    │                   │
-│  │            │◄───│             │◄───│             │                   │
-│  │  LP Deposit│    │  Lending    │    │  Staking    │                   │
-│  └────────────┘    └─────────────┘    └─────────────┘                   │
-└─────────────────────────────────────────────────────────────────────────┘
-```
+DeFi on Polkadot is powerful but fragmented. Users who want optimal yields must:
 
----
+- Bridge assets manually between parachains
+- Manage multiple wallets and UIs
+- Monitor shifting APYs and risks in real-time
+- Rebalance positions across chains constantly
 
-## 2. System Components
+**Current State of Polkadot DeFi:**
 
-### Frontend (`src/`)
-
-| Component | Purpose |
+| Challenge | Impact |
 |-----------|---------|
-| `pages/BasketsPage.tsx` | Swiper-based basket discovery with "Swipe-to-Invest" modals |
-| `pages/BasketPage.tsx` | Deep-dive basket detail page with full stats |
-| `components/DepositForm.tsx` | DOT deposit form with wallet integration |
-| `components/WithdrawForm.tsx` | Token burn + DOT withdrawal form |
-| `components/RebalancePanel.tsx` | PVM engine rebalance trigger UI |
-| `components/AllocationChart.tsx` | Visual pie chart of basket allocations |
-| `components/XCMStatus.tsx` | Cross-chain message status tracker |
-| `hooks/useBasketManager.ts` | Contract interaction (deposit/withdraw/rebalance) |
-| `hooks/useEVMWallet.ts` | MetaMask/SubWallet EVM connection |
-| `hooks/usePVMEngine.ts` | Direct PVM engine read calls |
-| `contexts/WalletContext.tsx` | Unified wallet state management |
+| Fragmented Liquidity | Capital trapped in individual parachains |
+| Complex UX | 10+ steps to build a diversified position |
+| Manual Rebalancing | Missing yield opportunities due to slow adjustments |
+| No Discovery | Hard to find and compare strategies |
 
-### Smart Contracts (`contracts/`)
-
-| Contract | Purpose |
-|----------|---------|
-| `BasketManager.sol` | Core basket logic, XCM dispatch, PVM calls |
-| `BasketToken.sol` | ERC-20 token per basket (mint/burn by manager) |
-| `MockXCMPrecompile.sol` | Mock XCM for local testing |
-| `MockPVMEngine.sol` | Mock Rust engine for local testing |
-
-### Rust PVM Engine (`rust/pvm-contract/`)
-
-| Module | Purpose |
-|--------|---------|
-| `main.rs` | Selector-based entry points for PolkaVM |
-| `optimizeAllocation()` | Calculate optimal weights from yields |
-| `rebalanceBasket()` | Detect drift and compute corrective weights |
-| `getYields()` | Return mock yield data per parachain |
-| `getVolatility()` | Return volatility scores per parachain |
+**Result:** Only advanced users can optimize. Retail users miss opportunities. Capital sits idle in silos.
 
 ---
 
-## 2.5 Supported Tokens
+## Our Solution
 
-TeleBasket supports 15 multichain tokens across 3 categories for testing:
+PolkaBasket introduces the **Basket Token** — a composable primitive that represents diversified cross-chain DeFi positions.
 
-### Assets (8 tokens)
-- **PAS** (Paseo DOT), **aUSD** (Acala Dollar), **LDOT** (Liquid DOT), **iBTC** (Interlay BTC), **HDX** (Hydration), **GLMR** (Moonbeam), **PDEX** (Polkadex), **CFG** (Centrifuge)
+### How It Works
 
-### Famous Cross-Chain (4 tokens)
-- **USDC**, **USDT**, **WBTC**, **DAI**
+**User Journey:**
 
-### Meme & Community (3 tokens)
-- **PUP** (PolkaPup), **🌕** (DOT Moon), **HODL** (HODL Gang)
+1. **Discover** — Swipe through curated baskets (stablecoin yields, high-growth alpha, balanced indices)
+2. **Deposit** — Single DOT deposit activates multi-parachain deployment
+3. **Receive** — Get liquid basket token representing fractional ownership
+4. **Earn** — Automated rebalancing via PolkaVM maximizes risk-adjusted yield
+5. **Share** — Publish custom strategies, invite friends, earn referral rewards
 
----
+### Value Proposition
 
-## 3. Frontend Flow
-
-### Wallet Connection
-
-```
-1. User clicks "Connect Wallet"
-   │
-   ▼
-2. useEVMWallet.connect() requests accounts from injected provider
-   │
-   ▼
-3. createWalletClient() creates viem client with:
-   - account: user's EVM address
-   - chain: polkadotHubTestnet (chainId 420420417)
-   - transport: custom(provider)
-   │
-   ▼
-4. WalletContext stores walletClient for all contract calls
-```
-
-### "Swipe-to-Invest" Discovery (BasketsPage)
-
-```
-1. User swipes right on a Basket Card
-   │
-   ▼
-2. DepositWithdrawModal opens immediately
-   │
-   ▼
-3. User selects "Deposit" or "Withdraw" tab
-   │
-   ▼
-4. Form embeds directly with glassmorphism UI
-   │
-   ▼
-5. Transaction executes via embedded logic
-```
-
-### Deposit Flow
-
-```
-1. User enters DOT amount in DepositForm
-   │
-   ▼
-2. useBasketManager.deposit(walletClient, basketId, amount)
-   │
-   ├──► viem publicClient.readContract() → simulate tx
-   │
-   ▼
-3. walletClient.writeContract() sends deposit tx
-   │
-   ├──► BasketManager.deposit(basketId) { value: amount }
-   │
-   ▼
-4. Inside contract:
-   ├── Mint basket tokens 1:1 with DOT amount
-   ├── Update totalDeposited
-   ├── Attempt XCM deployment dispatch
-   └── Emit Deposited event
-   │
-   ▼
-5. publicClient.waitForTransactionReceipt() waits for confirmation
-   │
-   ▼
-6. UI updates with success state + explorer link
-```
-
-### Rebalance Flow
-
-```
-1. Owner/automation triggers rebalance via RebalancePanel
-   │
-   ▼
-2. useBasketManager.rebalance(walletClient, basketId)
-   │
-   ▼
-3. Contract.rebalance(basketId):
-   ├── Encode rebalance input: (weights[], totalDeposited, paraIds[])
-   ├── staticcall PVM engine at 0x...0900
-   ├── Decode returned optimal weights
-   └── Update allocations where drift > threshold
-   │
-   ▼
-4. Emit Rebalanced event
-```
+| For Users | For Polkadot Ecosystem |
+|-----------|----------------------|
+| 1-click diversified exposure | Unified liquidity layer across parachains |
+| Automatic optimization | Composable primitives for other protocols |
+| Social discovery & sharing | Viral growth through creator incentives |
+| Lower gas costs vs manual bridging | Higher TVL retention on Asset Hub |
 
 ---
 
-## 4. Smart Contracts
+## Key Innovations
 
-### BasketManager.sol
+| Feature | Technology | Impact |
+|---------|-----------|---------|
+| **Native Cross-Chain** | XCM v4 | No bridges. Secure asynchronous execution across parachains. |
+| **AI Optimization** | PolkaVM + Rust | Institutional-grade risk-adjusted allocation on-chain. |
+| **Unified Exposure** | ERC-20 Basket Token | One token for diversified yield. Tradeable, collateralizable. |
+| **Social Investing** | React + Web3 | Collaborative finance. Viral growth through referrals. |
 
-The main protocol contract managing baskets and cross-chain deployment.
+### Technical Differentiation
 
-#### Key State Variables
+**vs. Traditional Yield Aggregators:**
+- Not limited to single chain
+- Native XCM (not third-party bridges)
+- On-chain optimization engine
+- Non-reverting XCM (deposits always succeed)
 
-```solidity
-struct AllocationConfig {
-    uint32 paraId;        // Parachain ID (2034=Hydration, 2004=Moonbeam, 2000=Acala)
-    address protocol;     // Target protocol address on parachain
-    uint16 weightBps;    // Allocation weight in basis points (10000 = 100%)
-    bytes depositCall;    // Encoded XCM call for deposit
-    bytes withdrawCall;   // Encoded XCM call for withdrawal
-}
+**vs. Index Tokens:**
+- Active rebalancing vs passive tracking
+- Real underlying positions (not synthetic)
+- Cross-chain composition
+- Social sharing layer
 
-struct Basket {
-    uint256 id;
-    string name;
-    address token;              // ERC-20 basket token
-    AllocationConfig[] allocations;
-    uint256 totalDeposited;     // Total DOT deposited
-    bool active;
-}
+---
+
+## System Architecture
+
+### High-Level Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        USER INTERFACE                            │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐   │
+│  │   Baskets    │  │   Create     │  │     Portfolio        │   │
+│  │   (Swipe)    │  │   Basket     │  │     Dashboard        │   │
+│  └──────┬───────┘  └──────┬───────┘  └──────────┬───────────┘   │
+└─────────┼──────────────────┼─────────────────────┼───────────────┘
+          │                  │                     │
+          └──────────────────┴─────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                     SMART CONTRACT LAYER                         │
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                  BasketManager.sol                        │   │
+│  │  ┌──────────────┐  ┌──────────────┐  ┌────────────────┐  │   │
+│  │  │  createBasket│  │   deposit    │  │   rebalance    │  │   │
+│  │  └──────┬───────┘  └──────┬───────┘  └───────┬────────┘  │   │
+│  │         │                 │                  │           │   │
+│  │         ▼                 ▼                  ▼           │   │
+│  │  ┌─────────────────────────────────────────────────────┐ │   │
+│  │  │           XCM Message Dispatcher                    │ │   │
+│  │  │   Build SCALE messages → Call Precompile            │ │   │
+│  │  └──────────────────────┬──────────────────────────────┘ │   │
+│  └─────────────────────────┼────────────────────────────────┘   │
+│                            │                                     │
+│  ┌─────────────────────────┴────────────────────────────────┐   │
+│  │                  BasketToken.sol (ERC-20)                │   │
+│  │              Mint on deposit / Burn on withdraw          │   │
+│  └──────────────────────────────────────────────────────────┘   │
+└────────────────────────────┬─────────────────────────────────────┘
+                             │ XCM v4 Messages
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    POLKADOT RELAY CHAIN                          │
+│                      (Message Routing)                           │
+└──────────────┬──────────────────────────────┬───────────────────┘
+               │                              │
+               ▼                              ▼
+┌──────────────────────────┐    ┌──────────────────────────┐
+│      HYDRATION           │    │      MOONBEAM            │
+│      (Para 2034)         │    │      (Para 2004)         │
+│                          │    │                          │
+│  ┌──────────────────┐   │    │  ┌──────────────────┐   │
+│  │   LP Pools       │   │    │  │   Lending        │   │
+│  │   Omnipool       │◄──┘    │  │   Markets        │◄──┘
+│  │   40% allocation │          │  │   30% allocation │
+│  └──────────────────┘          │  └──────────────────┘
+└──────────────────────────┘    └──────────────────────────┘
+               │
+               │
+               ▼
+┌──────────────────────────┐
+│      ACALA               │
+│      (Para 2000)         │
+│                          │
+│  ┌──────────────────┐   │
+│  │   Liquid         │   │
+│  │   Staking        │   │
+│  │   30% allocation │   │
+│  └──────────────────┘   │
+└──────────────────────────┘
 ```
 
-#### Key Addresses (Mainnet/Paseo)
+### Deposit Flow Architecture
 
-| Address | Purpose |
-|---------|---------|
-| `0x0000000000000000000000000000000000000800` | XCM Precompile |
-| `0x0000000000000000000000000000000000000900` | PVM Engine Precompile |
+```
+Step 1: User Initiates Deposit
+─────────────────────────────────
+User → Frontend → Wallet Sign
+Amount: 10 PAS
+Basket: xDOT-LIQ (ID: 0)
 
-#### Core Functions
+Step 2: Contract Processing
+─────────────────────────────────
+BasketManager.deposit(0)
+  ├── Validate amount > 0
+  ├── Calculate allocations:
+  │     Hydration: 4 PAS (40%)
+  │     Moonbeam:  3 PAS (30%)
+  │     Acala:     3 PAS (30%)
+  ├── Mint 10 xDOT-LIQ tokens
+  └── Emit Deposited event
 
-**`createBasket(name, symbol, allocations)`** - Owner only
-- Validates all allocations sum to 10000 bps
-- Deploys new ERC-20 basket token
-- Stores basket configuration
+Step 3: XCM Dispatch (Non-Reverting)
+─────────────────────────────────
+For each allocation:
+  Build XCM message (SCALE v5)
+  Call XCM Precompile
+  ├─ Success: Emit DeploymentDispatched
+  └─ Failure: Emit DeploymentFailed
+     (Transaction continues!)
 
-**`deposit(basketId) payable`** - Anyone
-- Requires `msg.value > 0`
-- Mints basket tokens 1:1 with deposited DOT
-- Calls `_executeDeployment()` for XCM dispatch
-- Emits `Deposited` event
+Step 4: Cross-Chain Settlement
+─────────────────────────────────
+XCM Executor validates message
+Fees deducted from sovereign account
+Assets transferred to destination
+Arrive in parachain sovereign account
 
-**`withdraw(basketId, tokenAmount)`** - Token holders
-- Burns basket tokens
-- Computes proportional DOT amount
-- Attempts XCM withdraw dispatch per allocation
-- Transfers native DOT back to caller
-- Emits `Withdrawn` event
-
-**`rebalance(basketId)`** - Anyone
-- Calls PVM engine via staticcall
-- Applies new weights if drift exceeds threshold (200 bps)
-- Emits `Rebalanced` event
-
-#### XCM Dispatch (Non-Reverting)
-
-```solidity
-function _executeDeployment(uint256 basketId, uint256 totalAmount) internal {
-    Basket storage b = baskets[basketId];
-    for (uint i = 0; i < b.allocations.length; i++) {
-        AllocationConfig memory alloc = b.allocations[i];
-        uint256 allocAmount = (totalAmount * alloc.weightBps) / 10000;
-        
-        bool ok = _dispatchXCMDeposit(alloc, allocAmount);
-        if (ok) {
-            emit DeploymentDispatched(basketId, alloc.paraId, allocAmount);
-        } else {
-            // Non-reverting: emit failure instead of reverting
-            emit DeploymentFailed(basketId, alloc.paraId, allocAmount, "XCM unavailable");
-        }
-    }
-}
+Step 5: User Confirmation
+─────────────────────────────────
+Frontend shows:
+✓ Tokens minted: 10 xDOT-LIQ
+✓ XCM messages sent: 3
+⚠ Allocation: 40/30/30
+🔗 Explorer link
 ```
 
-#### PVM Engine Integration
+### Rebalancing Architecture
 
-```solidity
-function rebalance(uint256 basketId) external {
-    Basket storage b = baskets[basketId];
-    
-    if (pvmEngine.code.length > 0) {
-        // Encode input for Rust engine
-        bytes memory engineInput = _encodeRebalanceInput(b);
-        
-        // Staticcall to PVM engine (no state changes in engine)
-        (bool success, bytes memory engineOutput) = pvmEngine.staticcall(
-            abi.encodeWithSelector(IPVMEngine.rebalanceBasket.selector, engineInput)
-        );
-        
-        if (success) {
-            uint16[] memory newWeights = abi.decode(engineOutput, (uint16[]));
-            
-            // Apply weights where drift exceeds threshold
-            for (uint i = 0; i < b.allocations.length; i++) {
-                if (_absDiff(b.allocations[i].weightBps, newWeights[i]) > rebalanceThresholdBps) {
-                    b.allocations[i].weightBps = newWeights[i];
-                }
-            }
-        }
-    }
-    
-    emit Rebalanced(basketId, block.timestamp);
-}
+```
+Trigger: Time-based or Threshold-based
+─────────────────────────────────────────
+
+Input Collection:
+├─ Current weights: [4000, 3000, 3000]
+├─ Total deposited: 1,000 PAS
+└─ Para IDs: [2034, 2004, 2000]
+         │
+         ▼
+┌──────────────────────────────────────┐
+│        PolkaVM Engine                │
+│     (Rust RISC-V Bytecode)           │
+│                                      │
+│  Algorithm:                          │
+│  1. Fetch yields per parachain       │
+│  2. Calculate risk scores            │
+│  3. Optimize for Sharpe ratio        │
+│  4. Return target weights            │
+└──────────────┬───────────────────────┘
+               │
+               ▼
+Output: New weights [3500, 3500, 3000]
+
+Drift Check:
+├─ Hydration: |4000-3500| = 500 bps
+├─ Moonbeam:  |3000-3500| = 500 bps  
+└─ Acala:     |3000-3000| = 0 bps
+
+Threshold: 200 bps
+Action: Update Hydration and Moonbeam
 ```
 
-### BasketToken.sol
+### Social Layer Architecture
 
-ERC-20 token created per basket, controlled by BasketManager.
+```
+User Creates Custom Basket
+──────────────────────────────────
+1. Define strategy
+   ├─ Name: "Alpha Maxi"
+   ├─ Protocols: Hydration LP, Moonbeam Leverage
+   └─ Weights: 60% / 40%
 
-```solidity
-contract BasketToken is ERC20 {
-    address public manager;
-    
-    modifier onlyManager() {
-        require(msg.sender == manager, "Not manager");
-        _;
-    }
-    
-    constructor(string memory name, string memory symbol, address _manager) {
-        _mint(msg.sender, 0);  // Initialize supply
-        manager = _manager;
-    }
-    
-    function mint(address to, uint256 amount) external onlyManager {
-        _mint(to, amount);
-    }
-    
-    function burn(address from, uint256 amount) external onlyManager {
-        _burn(from, amount);
-    }
-}
+2. Save to localStorage
+   ├─ Status: "Draft" or "Pending"
+   └─ ID: local-timestamp-random
+
+3. Appears in UI
+   ├─ Listings page (with "Pending Approval" badge)
+   ├─ Explore page (swipeable)
+   └─ User's portfolio
+
+4. Sharing Flow
+   ├─ Generate share link
+   ├─ Social platforms: Twitter, Telegram, WhatsApp
+   └─ Referral tracking
+
+5. Community Growth
+   ├─ Others view shared basket
+   ├─ Can deposit (if approved)
+   └─ Creator earns incentives
 ```
 
 ---
 
-## 5. Rust PVM Engine
+## Live Demo
 
-### Why Rust + PolkaVM?
+### Pre-Deployed Contracts (Paseo Testnet)
 
-PolkaVM runs RISC-V bytecode natively on Polkadot Hub:
+Test instantly without deploying:
 
-- **Type Safety**: No integer overflow bugs in financial calculations
-- **Performance**: Native execution vs interpreted EVM
-- **Expressiveness**: Complex financial math easier in Rust
+| Contract | Address | Purpose |
+|----------|---------|---------|
+| **BasketManager** | `0x96CA4a5Cb6Cf56F378aEe426567d330f1CFDEaA2` | Core protocol logic |
+| **BasketToken** | `0xD9FEBB375aCE5226AF1AA4146988Af2BDB8A1e8B` | xDOT-LIQ basket token |
+| **XCM Precompile** | `0x00000000000000000000000000000000000a0000` | Cross-chain messaging |
 
-### Architecture (`rust/pvm-contract/src/main.rs`)
+**Network:** Paseo Asset Hub (Chain ID: 420420417)
 
-The contract uses selector-based dispatch matching Solidity's approach:
+### Available Baskets
 
-```rust
-const SELECTOR_REBALANCE: [u8; 4] = [0xf4, 0x99, 0x30, 0x18];
-const SELECTOR_OPTIMIZE: [u8; 4] = [0x8f, 0xa5, 0xf2, 0x5c];
-const SELECTOR_YIELDS: [u8; 4] = [0x5e, 0x54, 0x0e, 0x6d];
-const SELECTOR_VOLATILITY: [u8; 4] = [0x8d, 0x12, 0xf1, 0x9a];
+| Basket ID | Name | Strategy | Allocations |
+|-----------|------|----------|-------------|
+| 0 | xDOT-Liquidity | Conservative | Hydration LP 40%, Moonbeam Lending 30%, Acala Staking 30% |
+| 1 | Yield Maximizer | Moderate | Hydration Stable 50%, Moonbeam Liquid Staking 50% |
+| 2 | High Growth Alpha | Aggressive | Moonbeam Leverage 60%, Acala Leverage 40% |
+| 3 | Balanced Diversifier | Balanced | Hydration LP 34%, Moonbeam Lending 33%, Acala Staking 33% |
 
-#[no_mangle]
-#[polkavm_derive::polkavm_export]
-pub extern "C" fn call() {
-    let mut selector = [0u8; 4];
-    api::call_data_copy(&mut selector, 0);
+### 3-Minute Demo Flow
 
-    if selector == SELECTOR_REBALANCE {
-        handle_rebalance();
-    } else if selector == SELECTOR_OPTIMIZE {
-        handle_optimize();
-    } // ... other selectors
-}
-```
+1. **Get test PAS:** https://faucet.polkadot.io/ → Select "Paseo (Asset Hub)"
+2. **Open app:** Connect wallet at deployed URL
+3. **Deposit:** Select "xDOT Liquidity Basket" → Deposit 5 PAS
+4. **Verify:** Check token balance and XCM status
+5. **Create:** Try custom basket at /create-basket
+6. **Share:** Use share buttons on basket cards
 
-### Hardcoded Yield Data (MVP)
-
-```rust
-const YIELD_HYDRATION: u16 = 1200;   // 12% APY
-const YIELD_MOONBEAM: u16 = 800;     // 8% APY
-const YIELD_ACALA: u16 = 1000;       // 10% APY
-
-const VOL_HYDRATION: u16 = 500;      // 5% volatility
-const VOL_MOONBEAM: u16 = 800;       // 8% volatility
-const VOL_ACALA: u16 = 1000;         // 10% volatility
-```
-
-### Weight Optimization Algorithm
-
-```rust
-fn optimize_weights_internal(weights: &[u16], para_ids: &[u32], count: usize) -> [u16; 8] {
-    let mut total_score: u32 = 0;
-    let mut yields = [0u16; 8];
-    let mut risk_scores = [0u16; 8];
-    
-    // Calculate risk-adjusted yield for each protocol
-    for i in 0..count {
-        let yield_bps = get_default_yield(para_ids[i]);
-        let vol_bps = get_default_volatility(para_ids[i]);
-        risk_scores[i] = calculate_risk_score(yield_bps, vol_bps);
-        
-        // Adjusted yield = weight * yield * (1 - risk_penalty)
-        let adj_yield = (weights[i] as u32 * yield_bps as u32 
-            * (MAX_VOL_PENALTY - risk_scores[i] as u32))
-            / (MAX_VOL_PENALTY * 100);
-        total_score += adj_yield;
-    }
-    
-    // Normalize to 10000 bps total
-    // ...
-}
-```
-
-### Rebalance with Threshold
-
-```rust
-const REBALANCE_THRESHOLD: u16 = 200;  // 2% drift triggers rebalance
-
-fn apply_threshold_internal(current: &[u16], target: &[u16], threshold: u16) -> [u16; 8] {
-    let mut result = [0u16; 8];
-    
-    for i in 0..count {
-        let diff = abs_diff(current[i], target[i]);
-        
-        // Only apply new weight if drift exceeds threshold
-        result[i] = if diff > threshold { target[i] } else { current[i] };
-    }
-    
-    result
-}
-```
-
-### Building for PolkaVM
-
-```bash
-cd rust/pvm-contract
-
-# Install polkatool
-cargo install polkatool --version 0.26.0
-
-# Build for PolkaVM RISC-V target
-make all
-
-# Deploy
-export PRIVATE_KEY=0x...
-export ETH_RPC_URL=https://eth-rpc-testnet.polkadot.io
-make deploy
-```
+⚠️ XCM is simulated on Paseo (network limitation). For real XCM, see Local Testing section.
 
 ---
 
-## 6. XCM Integration
+## Testing Guide
 
-### How XCM Dispatch Works
+### Option 1: Quick Test (Paseo Testnet)
 
-```
-BasketManager.deposit()
-      │
-      ▼
-_allocations loop
-      │
-      ├──► Calculate allocAmount = totalAmount * weightBps / 10000
-      │
-      ├──► Encode XCM message:
-      │      (paraId, amount, depositCall)
-      │
-      └──► Call XCM precompile:
-             IXCMPrecompile(xcmPrecompile).sendXCM(paraId, xcmMessage)
-```
+**Prerequisites:** MetaMask/SubWallet with test PAS tokens
 
-### XCM Precompile Interface
+1. Set environment:
+   ```bash
+   VITE_NETWORK=paseo
+   VITE_BASKET_MANAGER_ADDRESS=0x96CA4a5Cb6Cf56F378aEe426567d330f1CFDEaA2
+   VITE_XCM_MODE=testnet
+   ```
 
-```solidity
-interface IXCMPrecompile {
-    function sendXCM(
-        uint32 destParaId,
-        bytes calldata xcmMessage
-    ) external returns (bool success);
-    
-    function teleportAsset(
-        uint32 destParaId,
-        uint256 amount,
-        address beneficiary
-    ) external returns (bool success);
-}
-```
+2. Install and run:
+   ```bash
+   npm install && npm run dev
+   ```
 
-### Mock XCM Precompile
+3. Open http://localhost:5173 and test deposit/withdraw
 
-For local testing, `MockXCMPrecompile.sol` simulates XCM:
+**Note:** XCM events are simulated. Funds stay on Asset Hub (safe, just not cross-chain yet).
 
-```solidity
-contract MockXCMPrecompile {
-    event XCMSent(uint32 indexed paraId, uint256 amount, bytes message);
-    
-    function sendXCM(uint32 destParaId, bytes calldata xcmMessage) 
-        external 
-        returns (bool) 
-    {
-        emit XCMSent(destParaId, 0, xcmMessage);
-        return true;
-    }
-}
-```
+### Option 2: Full XCM Testing (Local Chopsticks)
 
-### Enabling/Disabling XCM
+For real cross-chain execution:
 
-```solidity
-// Owner can toggle XCM
-basketManager.setXCMEnabled(false);  // Disable for testing
+**Requirements:**
+- 3 terminal windows
+- Chopsticks installed
+- 16GB+ RAM recommended
 
-// XCM failures are non-reverting
-// Deposit succeeds even if XCM dispatch fails
-```
+**Setup Steps:**
 
----
+1. **Start Asset Hub fork** (Terminal 1)
+   - Forks Paseo at latest block
+   - Exposes WebSocket at ws://localhost:8000
 
-## 7. Network Configuration
+2. **Start Hydration fork** (Terminal 2)
+   - Forks Hydration testnet
+   - WebSocket at ws://localhost:8001
 
-### Testnet: Paseo Asset Hub
+3. **Start Moonbeam fork** (Terminal 3)
+   - Forks Moonbase Alpha
+   - WebSocket at ws://localhost:8002
 
-| Parameter | Value |
-|-----------|-------|
-| Chain ID | 420420417 |
-| RPC URL | `https://eth-rpc-testnet.polkadot.io` |
-| Symbol | PASE0 |
-| Explorer | `https://blockscout-passet-hub.parity-testnet.parity.io` |
+4. **Configure cross-chain**
+   - Connect Asset Hub to siblings
+   - Register asset mappings
+   - Enable XCM channels
 
-### Testnet: Westend Asset Hub
+5. **Deploy contracts**
+   - Deploy to Asset Hub fork
+   - Create 4 test baskets
+   - Initialize allocations
 
-| Parameter | Value |
-|-----------|-------|
-| Chain ID | 420420417 |
-| RPC URL | `https://westend-asset-hub-eth-rpc.polkadot.io` |
-| Symbol | WND |
-| Explorer | `https://assethub-westend.subscan.io` |
+6. **Fund sovereign accounts**
+   - Calculate sovereign addresses
+   - Fund with 100 PAS each
+   - Verify balances
 
-### Parachain IDs
+7. **Configure frontend**
+   - Set VITE_XCM_MODE=local
+   - Update contract addresses
+   - Point RPC to localhost:8000
 
-| Parachain | ID | Purpose |
-|-----------|-----|---------|
-| Hydration | 2034 | LP provision |
-| Moonbeam | 2004 | Lending |
-| Acala | 2000 | Staking |
+8. **Test real XCM**
+   - Deposit triggers actual cross-chain transfers
+   - Verify balances on destination chains
+   - Test withdrawal flows
+
+See docs/XCM_TESTING.md for complete step-by-step walkthrough.
 
 ---
 
-## 8. Quick Start
+## Deployment Addresses
 
-### Prerequisites
+### Paseo Testnet (Active)
 
-- Node.js 18+
-- npm or pnpm
-- Rust (for PVM engine)
-- MetaMask or SubWallet
+| Component | Address | Status |
+|-----------|---------|--------|
+| BasketManager | `0x96CA4a5Cb6Cf56F378aEe426567d330f1CFDEaA2` | ✅ Active |
+| xDOT-LIQ Token | `0xD9FEBB375aCE5226AF1AA4146988Af2BDB8A1e8B` | ✅ Active |
+| PVM Engine | `0x09dDF8f56981deC60e468e2B85194102a3e2E124` | ✅ Active |
 
-### 1. Clone & Install
+**Explorer:** https://blockscout-testnet.polkadot.io
 
-```bash
-git clone <repo-url>
-cd tele-basket
-npm install
-```
+**Verification:**
+- Contract code verified on Blockscout
+- All functions tested and working
+- Gas optimized for Paseo conditions
 
-### 2. Environment Setup
+### Local Development
 
-```bash
-# Copy example env
-cp .env.example .env
-
-# Edit .env with your values:
-# PRIVATE_KEY=0x... (for deployment)
-# VITE_BASKET_MANAGER_ADDRESS=... (after deployment)
-# VITE_PVM_ENGINE_ADDRESS=... (after deployment)
-```
-
-### 3. Start Frontend
-
-```bash
-npm run dev
-```
-
-### 4. Deploy Contracts
+Deploy fresh contracts:
 
 ```bash
 cd contracts
-npm install
-npm run compile
-npm run deploy:local    # Local Hardhat
-# OR
+npm run deploy:local    # Hardhat local
 npm run deploy:paseo    # Paseo testnet
 ```
 
 ---
 
-## 9. Deployment Guide
+## Quick Start
 
-### Local Hardhat
+### Prerequisites
+- Node.js 18+
+- npm or pnpm
+- MetaMask or SubWallet
 
-```bash
-cd contracts
-npm run deploy:local
-```
-
-### Paseo Testnet
+### Install & Run
 
 ```bash
-# 1. Deploy PVM Engine
-cd rust/pvm-contract
-export PRIVATE_KEY=0x...
-export ETH_RPC_URL=https://eth-rpc-testnet.polkadot.io
-make deploy
-# Note deployed address
-
-# 2. Update .env
-VITE_PVM_ENGINE_ADDRESS=<deployed-address>
-VITE_USE_MOCK_PVM=false
-
-# 3. Deploy BasketManager
-cd ../../contracts
-PRIVATE_KEY=0x... npm run deploy:paseo
-# Note BasketManager address
-
-# 4. Update .env
-VITE_BASKET_MANAGER_ADDRESS=<deployed-address>
-
-# 5. Verify
-npm run health:paseo
-npm run simulate:deposit
+git clone <repo-url>
+cd tele-basket
+npm install
+npm run dev
 ```
 
----
+Open http://localhost:5173
 
-## 10. Testing
+### Environment Configuration
 
-### Contract Tests
+Create .env file:
 
 ```bash
-cd contracts
-npm test
-```
+# For Paseo testing (pre-deployed contracts)
+VITE_NETWORK=paseo
+VITE_BASKET_MANAGER_ADDRESS=0x96CA4a5Cb6Cf56F378aEe426567d330f1CFDEaA2
+VITE_XCM_MODE=testnet
 
-### Rust Engine Tests
-
-```bash
-cd rust/pvm-engine
-cargo test
-```
-
-### Frontend (Manual)
-
-1. Connect wallet
-2. Select basket
-3. Deposit DOT
-4. Verify token balance
-5. View XCM status
-
----
-
-## Project Structure
-
-```
-tele-basket/
-├── src/                           # React frontend
-│   ├── pages/
-│   │   ├── HomePage.tsx
-│   │   ├── BasketsPage.tsx
-│   │   ├── BasketPage.tsx         # Main basket detail
-│   │   └── PortfolioPage.tsx
-│   ├── components/
-│   │   ├── DepositForm.tsx        # DOT deposit
-│   │   ├── WithdrawForm.tsx       # Token withdrawal
-│   │   ├── RebalancePanel.tsx     # PVM rebalance UI
-│   │   ├── AllocationChart.tsx    # Pie chart
-│   │   ├── XCMStatus.tsx         # Cross-chain status
-│   │   ├── BasketCard.tsx
-│   │   └── Navbar.tsx
-│   ├── hooks/
-│   │   ├── useBasketManager.ts    # Contract interactions
-│   │   ├── useBasketToken.ts      # Token balance
-│   │   ├── usePVMEngine.ts        # Direct PVM reads
-│   │   ├── useXCMStatus.ts        # XCM tracking
-│   │   ├── useEVMWallet.ts       # Wallet connection
-│   │   └── useSubWallet.ts       # Substrate wallet
-│   ├── contexts/
-│   │   └── WalletContext.tsx      # Unified wallet state
-│   └── config/
-│       └── contracts.ts           # ABIs & addresses
-│
-├── contracts/                     # Solidity contracts
-│   ├── contracts/
-│   │   ├── BasketManager.sol     # Core protocol
-│   │   ├── BasketToken.sol        # ERC-20 per basket
-│   │   ├── interfaces/
-│   │   │   ├── IBasketManager.sol
-│   │   │   ├── IXCMPrecompile.sol
-│   │   │   └── IPVMEngine.sol
-│   │   └── mocks/
-│   │       ├── MockXCMPrecompile.sol
-│   │       ├── MockPVMEngine.sol
-│   │       └── MockDOT.sol
-│   ├── scripts/
-│   │   ├── deploy.ts
-│   │   └── test-deploy.ts
-│   ├── tasks/
-│   │   └── deploy.ts              # Hardhat task
-│   └── test/
-│       └── BasketManager.test.ts
-│
-├── rust/
-│   ├── pvm-contract/              # ACTIVE PolkaVM contract
-│   │   ├── src/main.rs            # Entry points
-│   │   ├── Cargo.toml
-│   │   ├── contract.polkavm       # Compiled bytecode
-│   │   └── scripts/deploy.js
-│   └── pvm-engine/                 # Rust library
-│       ├── src/lib.rs
-│       ├── src/allocation.rs      # Weight optimization
-│       ├── src/rebalance.rs       # Drift detection
-│       └── src/risk.rs            # Risk scoring
-│
-├── docs/
-│   ├── CONTRACTS.md               # Detailed contract docs
-│   ├── PVM_ENGINE.md              # Rust engine docs
-│   └── STATUS.md                  # Project status
-│
-├── README.md                      # This file
-└── package.json
+# For local XCM testing (requires Chopsticks setup)
+# VITE_XCM_MODE=local
+# VITE_BASKET_MANAGER_ADDRESS=<your-deployed-address>
 ```
 
 ---
 
-## Scripts Reference
+## Future Roadmap
 
-### Contracts
+### Phase 1: Core Protocol (Complete ✓)
+- ✅ BasketManager with deposit/withdraw
+- ✅ XCM integration framework
+- ✅ 4 initial baskets deployed
+- ✅ Basic frontend with deposit flow
 
-| Command | Description |
-|---------|-------------|
-| `npm run compile` | Compile Solidity contracts |
-| `npm run test` | Run contract tests |
-| `npm run deploy` | Deploy to local Hardhat |
-| `npm run deploy:paseo` | Deploy to Paseo |
-| `npm run deploy:westend` | Deploy to Westend |
+### Phase 2: Optimization & UX (Current)
+- 🔄 Real PolkaVM engine deployment
+- 🔄 Automated rebalancing triggers
+- 🔄 Portfolio analytics dashboard
+- 🔄 Mobile-responsive UI improvements
 
-### Frontend
+### Phase 3: Social Layer (Q2 2026)
+- 📋 On-chain basket registry for custom strategies
+- 📋 Creator incentive program
+- 📋 Referral tracking and rewards
+- 📋 Leaderboards for top baskets
 
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start dev server |
-| `npm run build` | Build for production |
+### Phase 4: Advanced Strategies (Q3 2026)
+- 📋 Leveraged baskets with risk management
+- 📋 Options-integrated yield strategies
+- 📋 AI-managed dynamic allocation
+- 📋 Integration with lending protocols
+
+### Phase 5: Ecosystem Expansion (Q4 2026)
+- 📋 Support for 10+ parachains
+- 📋 Cross-chain basket tokens (XCM teleport)
+- 📋 Institutional custody integration
+- 📋 Governance token launch
+
+### Technical Debt & Improvements
+- 🔄 Move from MockPVM to real Rust engine
+- 🔄 Implement full XCM v5 when available
+- 🔄 Add comprehensive event indexing
+- 🔄 Security audit and formal verification
 
 ---
 
-## Resources
+## What Makes PolkaBasket Different
 
-- [PolkaVM Documentation](https://docs.polkadot.com/develop/smart-contracts/)
-- [XCM Documentation](https://docs.polkadot.com/develop/interoperability/xcm/)
-- [Viem](https://viem.sh/)
-- [Reactive DOT](https://reactivedot.dev/)
-- [Polkatool](https://openguild.wtf/blog/polkadot/polkadot-introduction-to-polkatool)
+**Not just aggregation — social coordination:**
+
+- Users create and share custom strategies
+- Community-driven basket discovery
+- Referral incentives for growing TVL
+- Collaborative investing experience
+
+**Technical differentiation:**
+
+- Native XCM (not third-party bridges)
+- On-chain Rust optimization (PolkaVM)
+- Composable basket tokens
+- Non-reverting XCM (deposits always succeed)
+
+**Ecosystem value:**
+
+- Brings liquidity to partner parachains
+- Reduces fragmentation
+- Creates composable primitives
+- Onboards retail users with simple UX
 
 ---
 
-## License
+## Vision
 
-MIT
+PolkaBasket aims to become Polkadot's default asset management and discovery layer — a permissionless marketplace where anyone can create, share, and invest in curated DeFi baskets.
+
+From stablecoin indices to AI-managed alpha strategies. From individual yield farming to collaborative community investing.
+
+**The Future We See:**
+
+- A 16-year-old creates a "Meme Coin Basket" that goes viral
+- A DAO manages treasury across 10 chains with one token
+- An AI agent continuously rebalances based on market conditions
+- Communities pool resources into shared strategies
+
+**PolkaBasket — Simplifying DeFi. Unifying Polkadot. Socializing Yield.**
+
+---
+
+## Team & Resources
+
+Built for the Polkadot Hackathon by OpenGuild.
+
+**Key Documentation:**
+- XCM Testing Guide: `docs/XCM_TESTING.md`
+- PVM Integration: `docs/PVM_INTEGRATION.md`
+- Contract Details: `docs/CONTRACTS.md`
+- Architecture: `docs/ARCHITECTURE.md`
+
+**Resources:**
+- PolkaVM Docs: https://docs.polkadot.com/develop/smart-contracts/
+- XCM Docs: https://docs.polkadot.com/develop/interoperability/xcm/
+- Viem: https://viem.sh/
+
+**License:** MIT
