@@ -2,7 +2,9 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useBasketManager } from "../hooks/useBasketManager";
 import { formatUnits } from "viem";
-import { APP_NATIVE_DECIMALS, APP_NATIVE_SYMBOL } from "../config/contracts";
+import { APP_NATIVE_DECIMALS, APP_NATIVE_SYMBOL, PARACHAINS } from "../config/contracts";
+import { DepositForm } from "../components/DepositForm";
+import { WithdrawForm } from "../components/WithdrawForm";
 
 interface BasketPreview {
   id: bigint;
@@ -13,13 +15,14 @@ interface BasketPreview {
   allocations: Array<{ chain: string; weight: number }>;
 }
 
-const MOCK_BASKETS: BasketPreview[] = [
+const MOCK_BASKETS: (BasketPreview & { creator: string })[] = [
   {
     id: 0n,
-    name: "xDOT Liquidity Basket",
+    name: "John's Alpha Basket",
     symbol: "xDOT-LIQ",
     totalDeposited: 1250000n,
     active: true,
+    creator: "John Doe",
     allocations: [
       { chain: "Hydration LP", weight: 40 },
       { chain: "Moonbeam Lending", weight: 30 },
@@ -28,10 +31,11 @@ const MOCK_BASKETS: BasketPreview[] = [
   },
   {
     id: 1n,
-    name: "Stable Yield Basket",
+    name: "Sarah's Yield Maximizer",
     symbol: "xSTABLE",
     totalDeposited: 850000n,
     active: true,
+    creator: "Sarah Connor",
     allocations: [
       { chain: "Hydration Stable", weight: 50 },
       { chain: "Moonbeam Liquid Staking", weight: 50 },
@@ -39,10 +43,11 @@ const MOCK_BASKETS: BasketPreview[] = [
   },
   {
     id: 2n,
-    name: "High Risk Basket",
+    name: "Mike's High Growth",
     symbol: "xRISK",
     totalDeposited: 320000n,
     active: false,
+    creator: "Michael Scott",
     allocations: [
       { chain: "Moonbeam Leverage", weight: 60 },
       { chain: "Acala Leverage", weight: 40 },
@@ -58,16 +63,50 @@ const CHAIN_COLORS: Record<string, string> = {
   "Moonbeam Leverage": "#53CBC9",
   "Acala Staking": "#FF4B4B",
   "Acala Leverage": "#FF4B4B",
+  "PAS": "#E6007A",
+  "aUSD": "#FF4B4B",
+  "LDOT": "#53CBC9",
+  "iBTC": "#F7931A",
+  "HDX": "#E6007A",
+  "GLMR": "#53CBC9",
+  "PDEX": "#000000",
+  "CFG": "#F7BD48",
+  "USDC": "#2775CA",
+  "USDT": "#26A17B",
+  "WBTC": "#F7931A",
+  "DAI": "#F5AC37",
+  "PUP": "#FFD700",
+  "🌕": "#FFD700",
+  "HODL": "#00FFFF",
 };
+
+const SUPPORTED_TOKENS = [
+  { symbol: "PAS", name: "Paseo DOT", icon: "🟣" },
+  { symbol: "aUSD", name: "Acala Dollar", icon: "💵" },
+  { symbol: "LDOT", name: "Liquid DOT", icon: "💧" },
+  { symbol: "iBTC", name: "Interlay BTC", icon: "₿" },
+  { symbol: "HDX", name: "Hydration", icon: "💧" },
+  { symbol: "GLMR", name: "Moonbeam", icon: "🌙" },
+  { symbol: "PDEX", name: "Polkadex", icon: "📊" },
+  { symbol: "CFG", name: "Centrifuge", icon: "⚙️" },
+  { symbol: "USDC", name: "USD Coin", icon: "🪙" },
+  { symbol: "USDT", name: "Tether USD", icon: "🟢" },
+  { symbol: "WBTC", name: "Wrapped BTC", icon: "₿" },
+  { symbol: "DAI", name: "Dai Stablecoin", icon: "🟡" },
+  { symbol: "PUP", name: "PolkaPup", icon: "🐶" },
+  { symbol: "🌕", name: "DOT Moon", icon: "🌕" },
+  { symbol: "HODL", name: "HODL Gang", icon: "💎" },
+];
 
 export function BasketsPage() {
   useBasketManager();
   const navigate = useNavigate();
-  const [baskets, setBaskets] = useState<BasketPreview[]>(MOCK_BASKETS);
+  const [baskets, setBaskets] = useState<(BasketPreview & { creator: string })[]>(MOCK_BASKETS);
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState<"left" | "right" | null>(null);
   const [showCustomModal, setShowCustomModal] = useState(false);
+  const [showDepositModal, setShowDepositModal] = useState(false);
 
   useEffect(() => {
     setLoading(false);
@@ -77,10 +116,10 @@ export function BasketsPage() {
     setDirection(dir);
 
     if (dir === "right") {
-      // Navigate to details on right swipe
-      const currentBasket = baskets[currentIndex];
+      // Show deposit modal on right swipe
       setTimeout(() => {
-        navigate(`/basket/${currentBasket.id}`);
+        setShowDepositModal(true);
+        setDirection(null);
       }, 300);
       return;
     }
@@ -204,10 +243,150 @@ export function BasketsPage() {
           }}
         />
       )}
+      {showDepositModal && (
+        <DepositWithdrawModal
+          basket={baskets[currentIndex]}
+          onClose={() => {
+            setShowDepositModal(false);
+          }}
+        />
+      )}
     </div>
   );
 }
-function BasketCard({ basket, isStatic = false }: { basket: BasketPreview; isStatic?: boolean }) {
+
+function DepositWithdrawModal({ basket, onClose }: { basket: BasketPreview & { creator: string }; onClose: () => void }) {
+  const [activeTab, setActiveTab] = useState<"deposit" | "withdraw">("deposit");
+
+  // Map preview allocations to form allocations
+  const formAllocations = basket.allocations.map(a => {
+    let paraId = 2034; // Default Hydration
+    if (a.chain.includes("Moonbeam")) paraId = 2004;
+    if (a.chain.includes("Acala")) paraId = 2000;
+    return { chain: a.chain, paraId, pct: a.weight };
+  });
+
+  const withdrawAllocations = basket.allocations.map(a => {
+    let paraId = 2034;
+    if (a.chain.includes("Moonbeam")) paraId = 2004;
+    if (a.chain.includes("Acala")) paraId = 2000;
+    return { paraId, weightBps: a.weight * 100 };
+  });
+
+  return (
+    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/90 backdrop-blur-md" onClick={onClose} />
+      <div className="relative w-full max-w-xl overflow-hidden rounded-[2.5rem] border border-white/10 bg-neutral-900 shadow-2xl">
+        {/* Modal Header */}
+        <div className="flex items-center justify-between border-b border-white/5 p-6 bg-white/[0.02]">
+          <div>
+            <h2 className="text-xl font-bold text-white">{basket.name}</h2>
+            <p className="text-xs text-neutral-500 uppercase tracking-widest mt-1">Manage Investment</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="rounded-full bg-white/5 p-2 text-neutral-400 hover:bg-white/10 hover:text-white transition"
+          >
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Custom Tabs */}
+        <div className="flex p-2 bg-white/5 m-6 rounded-2xl border border-white/5">
+          <button
+            onClick={() => setActiveTab("deposit")}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all ${activeTab === "deposit"
+              ? "bg-emerald-500 text-neutral-950 shadow-lg"
+              : "text-neutral-400 hover:text-white"
+              }`}
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Deposit
+          </button>
+          <button
+            onClick={() => setActiveTab("withdraw")}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all ${activeTab === "withdraw"
+              ? "bg-red-500 text-white shadow-lg"
+              : "text-neutral-400 hover:text-white"
+              }`}
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+            </svg>
+            Withdraw
+          </button>
+        </div>
+
+        {/* Form Content */}
+        <div className="px-6 pb-8 max-h-[70vh] overflow-y-auto custom-scrollbar">
+          {activeTab === "deposit" ? (
+            <div className="premium-form-wrapper">
+              <DepositForm
+                basketId={basket.id}
+                basketName={basket.symbol}
+                allocations={formAllocations}
+              />
+            </div>
+          ) : (
+            <div className="premium-form-wrapper">
+              <WithdrawForm
+                basketId={basket.id}
+                tokenSymbol={basket.symbol}
+                allocations={withdrawAllocations}
+                userTokenBalance="0.00" // In a real app we'd fetch balance
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Footer info */}
+        <div className="p-4 bg-white/[0.02] border-t border-white/5 text-center">
+          <p className="text-[10px] text-neutral-600 uppercase tracking-widest font-bold">
+            Secure Cross-Chain Transaction via ERC-8004
+          </p>
+        </div>
+      </div>
+
+      <style>{`
+        .premium-form-wrapper > div {
+          background: transparent !important;
+          padding: 0 !important;
+        }
+        .premium-form-wrapper h3 {
+          display: none; /* Hide internal form headers */
+        }
+        .premium-form-wrapper input {
+          background: rgba(255, 255, 255, 0.03) !important;
+          border: 1px solid rgba(255, 255, 255, 0.05) !important;
+          border-radius: 1rem !important;
+          padding: 1rem !important;
+        }
+        .premium-form-wrapper button {
+          border-radius: 1rem !important;
+          font-weight: 800 !important;
+          text-transform: uppercase !important;
+          letter-spacing: 0.05em !important;
+          font-size: 0.875rem !important;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 10px;
+        }
+      `}</style>
+    </div>
+  );
+}
+function BasketCard({ basket, isStatic = false }: { basket: BasketPreview & { creator: string }; isStatic?: boolean }) {
   return (
     <div className={`h-full w-full overflow-hidden rounded-[2.5rem] border border-white/10 bg-neutral-900 p-8 shadow-2xl transition hover:border-white/20 ${!isStatic ? 'ring-1 ring-white/5' : ''}`}>
       <div className="flex h-full flex-col">
@@ -289,8 +468,20 @@ function BasketCard({ basket, isStatic = false }: { basket: BasketPreview; isSta
         </div>
 
         {!isStatic && (
-          <div className="mt-6 border-t border-white/5 pt-4 text-center">
-            <Link to={`/basket/${basket.id}`} className="text-[10px] font-bold uppercase tracking-widest text-emerald-500 hover:text-emerald-400 transition">View Full Details →</Link>
+          <div className="mt-6 border-t border-white/5 pt-6 flex items-center justify-between">
+            <Link
+              to={`/basket/${basket.id}`}
+              className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] font-bold uppercase tracking-widest text-emerald-500 hover:bg-white/10 hover:border-emerald-500/30 transition shadow-lg"
+            >
+              View Full Details
+            </Link>
+
+            <div className="flex flex-col items-end">
+              <span className="text-[8px] uppercase tracking-[0.2em] text-neutral-600 font-black mb-1">Created By</span>
+              <button className="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-bold text-white hover:bg-emerald-500/20 transition">
+                {basket.creator}
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -300,43 +491,57 @@ function BasketCard({ basket, isStatic = false }: { basket: BasketPreview; isSta
 
 function CreateBasketModal({ onClose, onCreated }: { onClose: () => void; onCreated: (b: BasketPreview) => void }) {
   const [name, setName] = useState("");
-  const [allocations, setAllocations] = useState([
-    { chain: "Hydration LP", weight: 50 },
-    { chain: "Moonbeam Lending", weight: 50 },
-  ]);
+  const [allocations, setAllocations] = useState<{ chain: string; weight: number }[]>([]);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const totalWeight = allocations.reduce((acc, curr) => acc + curr.weight, 0);
 
+  const toggleToken = (token: typeof SUPPORTED_TOKENS[0]) => {
+    const exists = allocations.find(a => a.chain === token.symbol);
+    if (exists) {
+      setAllocations(allocations.filter(a => a.chain !== token.symbol));
+    } else {
+      if (allocations.length >= 5) return; // Limit to 5 tokens per basket for UX
+      const remaining = 100 - totalWeight;
+      setAllocations([...allocations, { chain: token.symbol, weight: Math.max(0, remaining) }]);
+    }
+  };
+
+  const handleWeightChange = (symbol: string, val: number) => {
+    setAllocations(allocations.map(a => a.chain === symbol ? { ...a, weight: val } : a));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (totalWeight !== 100) return;
+    if (totalWeight !== 100 || allocations.length === 0) return;
 
-    // Show success state first
     setIsSuccess(true);
-
-    // Delay the actual creation so user sees the message
     setTimeout(() => {
-      // onCreated(newBasket); // We might want to just close or let user click
     }, 2000);
   };
 
+  const filteredTokens = SUPPORTED_TOKENS.filter(t =>
+    t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    t.symbol.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-lg rounded-3xl border border-white/10 bg-neutral-900 p-8 shadow-2xl">
+    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/90 backdrop-blur-md" onClick={onClose} />
+      <div className="relative w-full max-w-2xl overflow-hidden rounded-[2.5rem] border border-white/10 bg-neutral-900 shadow-2xl">
 
         {isSuccess ? (
-          <div className="flex flex-col items-center py-8 text-center">
+          <div className="flex flex-col items-center py-12 px-8 text-center">
             <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.2)]">
               <svg className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h2 className="text-3xl font-bold text-white">Basket Created!</h2>
-            <p className="mt-4 text-neutral-400">
-              Your custom strategy has been submitted. <br />
-              <span className="text-white font-medium">An admin will review and approve your basket shortly.</span>
+            <h2 className="text-3xl font-bold text-white uppercase tracking-tight">Basket Created!</h2>
+            <p className="mt-4 text-neutral-400 text-lg">
+              Your strategy <span className="text-emerald-400 font-bold">"{name}"</span> has been submitted. <br />
+              <span className="text-white font-medium">An admin will review and approve it shortly.</span>
             </p>
             <button
               onClick={() => {
@@ -346,7 +551,7 @@ function CreateBasketModal({ onClose, onCreated }: { onClose: () => void; onCrea
                   symbol: "CUSTOM",
                   totalDeposited: 0n,
                   active: true,
-                  allocations,
+                  allocations: allocations.map(a => ({ chain: a.chain, weight: a.weight })),
                 });
               }}
               className="mt-10 w-full rounded-2xl bg-white py-4 text-sm font-bold text-neutral-950 transition hover:bg-neutral-200"
@@ -355,87 +560,132 @@ function CreateBasketModal({ onClose, onCreated }: { onClose: () => void; onCrea
             </button>
           </div>
         ) : (
-          <>
-            <h2 className="text-2xl font-bold text-white mb-2">Create Custom Basket</h2>
-            <p className="text-neutral-400 mb-8 text-sm">Design your own cross-chain portfolio.</p>
+          <div className="flex flex-col h-[85vh]">
+            <div className="p-8 pb-4">
+              <h2 className="text-3xl font-bold text-white mb-2">Design Your Strategy</h2>
+              <p className="text-neutral-500 text-sm font-medium uppercase tracking-[0.2em]">Select tokens and set allocations</p>
+            </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-widest text-neutral-500 mb-2">Basket Name</label>
-                <input
-                  type="text"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. My Yield Engine"
-                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white focus:border-white/20 focus:outline-none focus:ring-1 focus:ring-white/20"
-                />
-              </div>
-
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <label className="block text-xs font-bold uppercase tracking-widest text-neutral-500">Allocation</label>
-                  <span className={`text-xs font-bold ${totalWeight === 100 ? "text-emerald-400" : "text-red-400"}`}>
-                    {totalWeight}% / 100%
-                  </span>
+            <form onSubmit={handleSubmit} className="flex flex-col flex-grow overflow-hidden px-8 pb-8">
+              <div className="space-y-6 flex flex-col flex-grow overflow-hidden">
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-widest text-neutral-500 mb-2">Strategy Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="e.g. Multichain Alpha v1"
+                    className="w-full rounded-2xl border border-white/5 bg-white/[0.03] px-5 py-3 text-white focus:border-white/20 focus:outline-none focus:ring-1 focus:ring-white/10 transition"
+                  />
                 </div>
 
-                {["Hydration LP", "Moonbeam Lending", "Acala Staking"].map((chain) => {
-                  const alloc = allocations.find((a) => a.chain === chain);
-                  return (
-                    <div key={chain} className="flex items-center gap-4">
-                      <div className="flex-grow">
-                        <p className="text-sm font-medium text-white">{chain}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
+                <div className="flex gap-6 flex-grow overflow-hidden">
+                  {/* Token Selection */}
+                  <div className="flex flex-col w-1/2 overflow-hidden border border-white/5 bg-white/[0.02] rounded-3xl">
+                    <div className="p-4 border-b border-white/5">
+                      <div className="relative">
                         <input
-                          type="number"
-                          min="0"
-                          max="100"
-                          value={alloc ? alloc.weight : 0}
-                          onChange={(e) => {
-                            const val = parseInt(e.target.value) || 0;
-                            const existing = allocations.find((a) => a.chain === chain);
-                            if (existing) {
-                              setAllocations(allocations.map((a) => a.chain === chain ? { ...a, weight: val } : a));
-                            } else {
-                              setAllocations([...allocations, { chain, weight: val }]);
-                            }
-                          }}
-                          className="w-20 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-center text-sm text-white focus:outline-none focus:ring-1 focus:ring-white/20"
+                          type="text"
+                          placeholder="Search tokens..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          className="w-full bg-white/5 border border-white/5 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-white/20"
                         />
-                        <span className="text-sm text-neutral-500">%</span>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
+                    <div className="flex-grow overflow-y-auto custom-scrollbar p-2 space-y-1">
+                      {filteredTokens.map(token => {
+                        const isSelected = allocations.some(a => a.chain === token.symbol);
+                        return (
+                          <button
+                            key={token.symbol}
+                            type="button"
+                            onClick={() => toggleToken(token)}
+                            className={`w-full flex items-center justify-between p-3 rounded-xl transition ${isSelected ? "bg-emerald-500/10 border border-emerald-500/20" : "hover:bg-white/5 border border-transparent"
+                              }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className="text-lg">{token.icon}</span>
+                              <div className="text-left">
+                                <p className="text-sm font-bold text-white">{token.symbol}</p>
+                                <p className="text-[10px] text-neutral-500">{token.name}</p>
+                              </div>
+                            </div>
+                            {isSelected && <svg className="h-4 w-4 text-emerald-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
 
-              <div className="pt-4 flex gap-4">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="flex-1 rounded-xl border border-white/10 py-3 text-sm font-bold text-white transition hover:bg-white/5"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={totalWeight !== 100}
-                  className="flex-1 rounded-xl bg-white py-3 text-sm font-bold text-neutral-950 transition hover:bg-neutral-200 disabled:opacity-30"
-                >
-                  Create Basket
-                </button>
+                  {/* Allocation Controls */}
+                  <div className="flex flex-col w-1/2 overflow-hidden border border-white/5 bg-white/[0.02] rounded-3xl p-5">
+                    <div className="flex items-center justify-between mb-4">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">Allocation</p>
+                      <span className={`text-sm font-mono font-bold ${totalWeight === 100 ? "text-emerald-400" : "text-red-400"}`}>
+                        {totalWeight}%
+                      </span>
+                    </div>
+
+                    <div className="flex-grow overflow-y-auto custom-scrollbar space-y-4 pr-1">
+                      {allocations.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center h-full text-center p-4">
+                          <p className="text-xs text-neutral-600 font-medium">No tokens selected.<br />Select from the list to start.</p>
+                        </div>
+                      ) : (
+                        allocations.map(alloc => (
+                          <div key={alloc.chain} className="space-y-2">
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs font-bold text-white">{alloc.chain}</span>
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="number"
+                                  value={alloc.weight}
+                                  onChange={(e) => handleWeightChange(alloc.chain, parseInt(e.target.value) || 0)}
+                                  className="w-16 bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-xs text-center text-white focus:outline-none"
+                                />
+                                <span className="text-xs text-neutral-600">%</span>
+                              </div>
+                            </div>
+                            <input
+                              type="range"
+                              min="0"
+                              max="100"
+                              value={alloc.weight}
+                              onChange={(e) => handleWeightChange(alloc.chain, parseInt(e.target.value))}
+                              className="w-full accent-emerald-500 h-1 bg-white/5 rounded-lg appearance-none cursor-pointer"
+                            />
+                          </div>
+                        ))
+                      )}
+                    </div>
+
+                    <div className="mt-4 pt-4 border-t border-white/5">
+                      <button
+                        type="submit"
+                        disabled={totalWeight !== 100 || allocations.length === 0}
+                        className="w-full rounded-2xl bg-white py-4 text-sm font-black text-neutral-950 transition hover:bg-neutral-200 disabled:opacity-20 flex items-center justify-center gap-2"
+                      >
+                        Launch Basket
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </form>
-
-            <div className="mt-6 border-t border-white/5 pt-6">
-              <p className="text-[10px] text-center text-neutral-500 uppercase tracking-widest">
-                Made by You · Combination of Selected Tokens
-              </p>
-            </div>
-          </>
+          </div>
         )}
+
+        <button
+          onClick={onClose}
+          className="absolute top-8 right-8 text-neutral-500 hover:text-white transition"
+        >
+          <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
       </div>
     </div>
   );
