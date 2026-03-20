@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 
 interface Slide {
     id: number;
-    type: "title" | "problem" | "solution" | "traction" | "economics" | "roadmap";
+    type: "title" | "vision" | "problem" | "solution" | "product" | "social" | "economics" | "goToMarket" | "roadmap";
     content: React.ReactNode;
 }
 
@@ -27,17 +27,44 @@ export function PPTPage() {
                         PolkaBasket
                     </h1>
                     <p className="mt-6 text-xl font-medium uppercase tracking-[0.4em] text-neutral-500 animate-fade-in stagger-1">
-                        One-Click Cross-Chain DeFi
+                        Cross-Chain DeFi, Social by Design
                     </p>
                 </div>
             ),
         },
         {
             id: 2,
+            type: "vision",
+            content: (
+                <div className="flex flex-col items-center justify-center text-center max-w-5xl px-6">
+                    <p className="mb-4 text-xs font-bold uppercase tracking-[0.3em] text-neutral-600 animate-fade-in">Slide 02 / Vision</p>
+                    <h2 className="text-4xl font-bold text-white sm:text-5xl md:text-6xl animate-slide-up">
+                        The Asset Management Layer of Polkadot.
+                    </h2>
+                    <p className="mt-10 max-w-3xl text-lg leading-relaxed text-neutral-400 animate-fade-in">
+                        PolkaBasket unifies fragmented parachain liquidity into one composable basket token.
+                        Users invest in one click, while PolkaVM and XCM orchestrate diversified yield across chains.
+                    </p>
+                    <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-3 w-full max-w-4xl">
+                        {[
+                            "One-click access",
+                            "Risk-adjusted optimization",
+                            "Social growth loops",
+                        ].map((point, i) => (
+                            <div key={point} className="rounded-2xl border border-white/10 bg-white/[0.02] px-6 py-5 text-sm font-medium text-neutral-200 animate-fade-in-up" style={{ animationDelay: `${0.2 + i * 0.1}s`, animationFillMode: "forwards" }}>
+                                {point}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            ),
+        },
+        {
+            id: 3,
             type: "problem",
             content: (
                 <div className="flex flex-col items-center justify-center text-center max-w-5xl px-6">
-                    <p className="mb-4 text-xs font-bold uppercase tracking-[0.3em] text-neutral-600 animate-fade-in">Slide 02 / The Problem</p>
+                    <p className="mb-4 text-xs font-bold uppercase tracking-[0.3em] text-neutral-600 animate-fade-in">Slide 03 / The Problem</p>
                     <h2 className="text-4xl font-bold text-white sm:text-5xl md:text-6xl animate-slide-up">
                         DeFi is Fragmented.
                     </h2>
@@ -58,11 +85,11 @@ export function PPTPage() {
             ),
         },
         {
-            id: 3,
+            id: 4,
             type: "solution",
             content: (
                 <div className="flex flex-col items-center justify-center text-center max-w-5xl px-6">
-                    <p className="mb-4 text-xs font-bold uppercase tracking-[0.3em] text-neutral-600 animate-fade-in">Slide 03 / The Solution</p>
+                    <p className="mb-4 text-xs font-bold uppercase tracking-[0.3em] text-neutral-600 animate-fade-in">Slide 04 / The Solution</p>
                     <h2 className="text-4xl font-bold text-white sm:text-5xl md:text-6xl animate-slide-up">
                         Seamless Orchestration.
                     </h2>
@@ -92,35 +119,35 @@ export function PPTPage() {
                         </div>
                     </div>
                     <p className="mt-10 text-lg text-neutral-400 max-w-2xl animate-fade-in" style={{ animationDelay: "0.5s", animationFillMode: "forwards" }}>
-                        <strong>PolkaBasket</strong> abstracts all cross-chain complexity. One signature on the Hub handles capital deployment to four different parachains instantly.
+                        <strong>PolkaBasket</strong> abstracts cross-chain complexity with XCM and PolkaVM. One deposit creates diversified exposure across top parachain strategies.
                     </p>
                 </div>
             ),
         },
         {
-            id: 4,
-            type: "traction",
+            id: 5,
+            type: "product",
             content: (
-                <div className="flex flex-col items-center justify-center text-center w-full max-w-6xl">
-                    <p className="mb-4 text-xs font-bold uppercase tracking-[0.3em] text-neutral-600 animate-fade-in">Slide 04 / Traction</p>
-                    <h2 className="mb-16 text-5xl font-bold text-white md:text-7xl animate-slide-up">
-                        Significant Scale.
+                <div className="flex flex-col items-center justify-center text-center w-full max-w-6xl px-6">
+                    <p className="mb-4 text-xs font-bold uppercase tracking-[0.3em] text-neutral-600 animate-fade-in">Slide 05 / Product Experience</p>
+                    <h2 className="mb-12 text-5xl font-bold text-white md:text-6xl animate-slide-up">
+                        From Swipe to Yield in Minutes.
                     </h2>
-                    <div className="grid grid-cols-2 gap-12 sm:grid-cols-4 w-full">
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-4 w-full">
                         {[
-                            { value: "$2.42M", label: "Protocol TVL" },
-                            { value: "1,247", label: "Depositors" },
-                            { value: "3", label: "Active Baskets" },
-                            { value: "12%+", label: "Avg. Yield" },
+                            { value: "1", label: "Swipe to Discover", detail: "Browse baskets by APY, risk, and category." },
+                            { value: "2", label: "Deposit Once", detail: "Mint a basket token representing your index share." },
+                            { value: "3", label: "Auto-Allocate", detail: "XCM deploys capital across parachains." },
+                            { value: "4", label: "Track + Rebalance", detail: "PolkaVM updates allocations for better risk-adjusted returns." },
                         ].map((stat, i) => (
-                            <div key={stat.label} className="opacity-0 animate-fade-in-up" style={{ animationDelay: `${0.3 + i * 0.1}s`, animationFillMode: "forwards" }}>
-                                <p className="text-5xl font-extrabold tracking-tighter text-white sm:text-6xl md:text-7xl">
+                            <div key={stat.label} className="rounded-2xl border border-white/10 bg-white/[0.02] p-6 opacity-0 animate-fade-in-up text-left" style={{ animationDelay: `${0.2 + i * 0.1}s`, animationFillMode: "forwards" }}>
+                                <p className="text-4xl font-extrabold tracking-tighter text-white">
                                     {stat.value}
                                 </p>
-                                <div className="mx-auto mt-4 h-1 w-12 bg-neutral-800" />
-                                <p className="mt-4 text-xs font-bold uppercase tracking-widest text-neutral-500">
+                                <p className="mt-3 text-xs font-bold uppercase tracking-widest text-neutral-400">
                                     {stat.label}
                                 </p>
+                                <p className="mt-3 text-sm leading-relaxed text-neutral-500">{stat.detail}</p>
                             </div>
                         ))}
                     </div>
@@ -128,40 +155,76 @@ export function PPTPage() {
             ),
         },
         {
-            id: 5,
+            id: 6,
+            type: "social",
+            content: (
+                <div className="flex flex-col items-center justify-center text-center max-w-6xl px-6">
+                    <p className="mb-4 text-xs font-bold uppercase tracking-[0.3em] text-neutral-600 animate-fade-in">Slide 06 / Social Edge</p>
+                    <h2 className="text-4xl font-bold text-white sm:text-5xl md:text-6xl animate-slide-up">
+                        Tinder-Like Discovery for DeFi Baskets.
+                    </h2>
+                    <div className="mt-14 grid grid-cols-1 gap-6 md:grid-cols-2 w-full">
+                        {[
+                            {
+                                title: "Swipe-to-Invest",
+                                desc: "Users swipe through strategy cards and enter or skip in seconds.",
+                            },
+                            {
+                                title: "Create and Publish",
+                                desc: "Anyone can launch a custom basket and make it investable by the community.",
+                            },
+                            {
+                                title: "Share and Invite",
+                                desc: "Creators share links and invite friends to co-invest and grow basket TVL.",
+                            },
+                            {
+                                title: "Basket Rewards",
+                                desc: "Rewards align users, creators, and referrals through participation incentives.",
+                            },
+                        ].map((item, i) => (
+                            <div key={item.title} className="rounded-3xl border border-white/10 bg-white/[0.02] p-8 text-left animate-fade-in-up" style={{ animationDelay: `${0.2 + i * 0.1}s`, animationFillMode: "forwards" }}>
+                                <h3 className="text-2xl font-semibold text-white">{item.title}</h3>
+                                <p className="mt-3 text-neutral-400 leading-relaxed">{item.desc}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            ),
+        },
+        {
+            id: 7,
             type: "economics",
             content: (
                 <div className="flex flex-col items-center justify-center text-center max-w-5xl px-6">
-                    <p className="mb-4 text-xs font-bold uppercase tracking-[0.3em] text-neutral-600 animate-fade-in">Slide 05 / Economic Model</p>
+                    <p className="mb-4 text-xs font-bold uppercase tracking-[0.3em] text-neutral-600 animate-fade-in">Slide 07 / Economic Model</p>
                     <h2 className="text-4xl font-bold text-white sm:text-5xl md:text-6xl animate-slide-up">
-                        Risk-Adjusted Alpha.
+                        Sustainable Value Flywheel.
                     </h2>
                     <div className="mt-16 grid grid-cols-1 md:grid-cols-2 gap-12 max-w-4xl mx-auto text-left">
                         <div className="rounded-3xl border border-white/5 bg-white/[0.01] p-10 animate-fade-in-left">
-                            <h3 className="text-2xl font-bold text-white mb-6">PVM Optimizer</h3>
+                            <h3 className="text-2xl font-bold text-white mb-6">Protocol Revenue</h3>
                             <p className="text-neutral-500 leading-relaxed mb-6">
-                                Our Rust engine, compiled to <strong>PolkaVM</strong>, continuously evaluates protocol health and yield drift.
-                                It recalculates optimal weightings every 24 hours.
+                                Management and performance fees are shared across protocol treasury, basket creators, and ecosystem incentives to keep growth aligned.
                             </p>
                             <div className="flex gap-2">
-                                <span className="px-3 py-1 rounded-full bg-neutral-800 text-[10px] text-neutral-300">SHARPE RATIO</span>
-                                <span className="px-3 py-1 rounded-full bg-neutral-800 text-[10px] text-neutral-300">TVL WEIGHTED</span>
+                                <span className="px-3 py-1 rounded-full bg-neutral-800 text-[10px] text-neutral-300">MGMT FEE</span>
+                                <span className="px-3 py-1 rounded-full bg-neutral-800 text-[10px] text-neutral-300">PERFORMANCE FEE</span>
                             </div>
                         </div>
                         <div className="rounded-3xl border border-white/5 bg-white/[0.01] p-10 animate-fade-in-right">
-                            <h3 className="text-2xl font-bold text-white mb-6">Yield Sources</h3>
+                            <h3 className="text-2xl font-bold text-white mb-6">Incentive Loop</h3>
                             <ul className="space-y-4">
                                 <li className="flex items-center gap-4">
                                     <div className="w-2 h-2 rounded-full bg-pink-500" />
-                                    <span className="text-neutral-300">Hydration Stable LP</span>
+                                    <span className="text-neutral-300">Users earn diversified cross-chain yield</span>
                                 </li>
                                 <li className="flex items-center gap-4">
                                     <div className="w-2 h-2 rounded-full bg-blue-400" />
-                                    <span className="text-neutral-300">Moonbeam Lending (WND)</span>
+                                    <span className="text-neutral-300">Creators earn rewards for top-performing baskets</span>
                                 </li>
                                 <li className="flex items-center gap-4">
                                     <div className="w-2 h-2 rounded-full bg-red-500" />
-                                    <span className="text-neutral-300">Acala Liquid Staking</span>
+                                    <span className="text-neutral-300">Referrals expand TVL through social invites</span>
                                 </li>
                             </ul>
                         </div>
@@ -170,19 +233,56 @@ export function PPTPage() {
             ),
         },
         {
-            id: 6,
+            id: 8,
+            type: "goToMarket",
+            content: (
+                <div className="flex flex-col items-center justify-center text-center max-w-5xl px-6">
+                    <p className="mb-4 text-xs font-bold uppercase tracking-[0.3em] text-neutral-600 animate-fade-in">Slide 08 / Go To Market</p>
+                    <h2 className="mb-12 text-4xl font-bold text-white sm:text-5xl md:text-6xl animate-slide-up">
+                        Community-Led Expansion.
+                    </h2>
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-3 w-full">
+                        {[
+                            {
+                                title: "Phase 1",
+                                subtitle: "Core DeFi Users",
+                                desc: "Launch flagship baskets and prove superior cross-chain UX.",
+                            },
+                            {
+                                title: "Phase 2",
+                                subtitle: "Creators and Communities",
+                                desc: "Enable basket creation, sharing, and referral campaigns.",
+                            },
+                            {
+                                title: "Phase 3",
+                                subtitle: "DAOs and Institutions",
+                                desc: "Deliver custom index products and treasury-grade allocation tooling.",
+                            },
+                        ].map((item, i) => (
+                            <div key={item.title} className="rounded-2xl border border-white/10 bg-white/[0.02] p-7 text-left animate-fade-in-up" style={{ animationDelay: `${0.2 + i * 0.1}s`, animationFillMode: "forwards" }}>
+                                <p className="text-xs font-bold uppercase tracking-[0.2em] text-neutral-500">{item.title}</p>
+                                <h3 className="mt-3 text-xl font-semibold text-white">{item.subtitle}</h3>
+                                <p className="mt-3 text-sm text-neutral-400 leading-relaxed">{item.desc}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            ),
+        },
+        {
+            id: 9,
             type: "roadmap",
             content: (
                 <div className="flex flex-col items-center justify-center text-center max-w-4xl px-4">
-                    <p className="mb-4 text-xs font-bold uppercase tracking-[0.3em] text-neutral-600 animate-fade-in">Slide 06 / Roadmap</p>
+                    <p className="mb-4 text-xs font-bold uppercase tracking-[0.3em] text-neutral-600 animate-fade-in">Slide 09 / Roadmap + Ask</p>
                     <h2 className="mb-12 text-4xl font-bold text-white sm:text-5xl md:text-6xl animate-slide-up">
-                        The Future is Multi-Parachain.
+                        Building the Default Layer.
                     </h2>
                     <div className="space-y-6 max-w-lg mx-auto text-left">
                         {[
-                            { q: "Q2 2026", goal: "Integration of 10+ new Parachains", status: "In Progress" },
-                            { q: "Q3 2026", goal: "Leveraged Basket Strategies via PVM Engine", status: "Planning" },
-                            { q: "Q4 2026", goal: "Autonomous Basket Creation (DAO Governance)", status: "Vision" },
+                            { q: "Q2 2026", goal: "Launch swipe-based basket discovery + social invites", status: "In Progress" },
+                            { q: "Q3 2026", goal: "Open basket creation marketplace with rewards", status: "Planning" },
+                            { q: "Q4 2026", goal: "DAO-governed strategy vaults + institutional baskets", status: "Vision" },
                         ].map((item, i) => (
                             <div key={item.goal} className="group relative border-l-2 border-white/10 pl-8 pb-8 last:pb-0 animate-fade-in-up" style={{ animationDelay: `${0.2 + i * 0.1}s`, animationFillMode: "forwards" }}>
                                 <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-black border-2 border-white/20 group-hover:border-white transition" />
@@ -192,6 +292,9 @@ export function PPTPage() {
                             </div>
                         ))}
                     </div>
+                    <p className="mt-10 max-w-xl text-sm leading-relaxed text-neutral-400">
+                        We are looking for ecosystem partners, early communities, and protocol collaborators to scale cross-chain basket liquidity across Polkadot.
+                    </p>
                     <Link to="/" className="mt-16 inline-flex h-14 items-center rounded-full bg-white px-10 text-sm font-bold text-black transition hover:scale-105 active:scale-95 animate-bounce-in">
                         Launch PolkaBasket App
                     </Link>

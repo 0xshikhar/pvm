@@ -2,7 +2,7 @@
 ### Cross-Chain Asset Baskets for Polkadot Hub
 **Hackathon:** Polkadot Solidity Hackathon 2026 (Feb 15 – Mar 20, 2026)
 **Track:** Track 2 — PVM / Cross-Chain
-**Pitch:** *"The first cross-chain DeFi index primitive for Polkadot, powered by PolkaVM and XCM."*
+**Pitch:** *"The first social cross-chain DeFi index layer for Polkadot, powered by PolkaVM, XCM v5, and community-driven strategies."*
 
 ---
 

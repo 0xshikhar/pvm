@@ -1,8 +1,18 @@
 # PolkaBasket
 
-**Cross-chain DeFi basket primitive for Polkadot Hub (PolkaVM)**
+**The Cross-Chain DeFi Index + Social Investing Layer for Polkadot**
 
-PolkaBasket allows users to deposit DOT/PASE0 once and receive a basket token representing capital deployed across multiple parachain protocols (Hydration, Moonbeam, Acala). The basket automatically manages allocations via a Rust PVM engine compiled to RISC-V bytecode.
+PolkaBasket is building the default DeFi index layer of Polkadot, enabling users to access risk-adjusted cross-chain yield with a single click. Powered by **PolkaVM** and **XCM**, PolkaBasket converts fragmented parachain liquidity into a unified, liquid, and social investing experience.
+
+Instead of juggling bridges, wallets, and disconnected dApps, users deposit once and receive a single basket token that represents diversified positions across Polkadot DeFi.
+
+### 🔭 Our Vision
+Our vision is to become Polkadot's on-chain asset management network:
+- **One-click for users**: Access multi-parachain yield without bridge complexity.
+- **Composable for DeFi**: Hold one basket token that can be traded or used as collateral.
+- **Social by default**: Discover opportunities with Tinder-like swipe UX, create custom baskets, share them with friends, invite co-investors, and earn community rewards.
+
+PolkaBasket does not just aggregate yield, it creates a new primitive for the ecosystem: **programmable, shareable, and community-owned baskets**.
 
 ---
 

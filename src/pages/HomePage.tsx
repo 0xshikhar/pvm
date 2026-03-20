@@ -72,8 +72,12 @@ export function HomePage() {
             <span className="bg-gradient-to-br from-white via-white to-neutral-500 bg-clip-text text-transparent">one click</span>
           </h1>
 
-          <p className="landing-section landing-stagger-3 mt-8 max-w-2xl text-lg leading-relaxed text-neutral-400 sm:text-xl">
-            The first unified yield layer for Polkadot. One deposit into a basket automatically allocates your capital across <span className="text-white">Hydration, Moonbeam, and Acala</span> via secure XCM.
+          <p className="landing-section landing-stagger-3 mt-8 max-w-3xl text-lg leading-relaxed text-neutral-400 sm:text-xl">
+            The first unified yield and social investing layer for Polkadot. Deposit once and get diversified exposure across <span className="text-white">Hydration, Moonbeam, and Acala</span> via native XCM, then discover new strategies with swipe-to-invest.
+          </p>
+
+          <p className="landing-section landing-stagger-3 mt-4 max-w-2xl text-sm leading-relaxed text-neutral-500 sm:text-base">
+            Create your own basket, share it with friends, invite them to co-invest, and unlock basket rewards together.
           </p>
 
           <div className="landing-section landing-stagger-4 mt-12 flex flex-col items-center gap-6 sm:flex-row">
@@ -233,6 +237,52 @@ export function HomePage() {
           </div>
         </div>
       </section>
+      {/* Social discovery + creator economy */}
+      <section className={`relative overflow-hidden bg-white/[0.03] ${SECTION_PADDING}`}>
+        <div className={`relative z-10 ${CONTENT_MAX}`}>
+          <div className="flex flex-col items-center text-center">
+            <p className="text-sm font-medium uppercase tracking-[0.18em] text-neutral-500">Social Layer</p>
+            <h2 className="mt-4 max-w-4xl text-3xl font-semibold tracking-tight text-white sm:text-4xl md:text-5xl">
+              Swipe. Create. Share.
+              <br />
+              Earn together.
+            </h2>
+            <p className="mt-5 max-w-2xl text-base leading-relaxed text-neutral-400 sm:text-lg">
+              PolkaBasket combines yield aggregation with social finance so the best strategies spread through communities, not just dashboards.
+            </p>
+          </div>
+
+          <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              {
+                title: "Swipe-to-Invest",
+                description: "Use Tinder-like discovery to swipe through baskets by APY, risk profile, and strategy theme.",
+              },
+              {
+                title: "Create Baskets",
+                description: "Build custom cross-chain baskets with your own allocations and publish them on-chain.",
+              },
+              {
+                title: "Share and Invite",
+                description: "Share basket links with friends and invite communities to co-invest in your strategy.",
+              },
+              {
+                title: "Basket Rewards",
+                description: "Earn rewards via creator incentives, referrals, and performance-based participation campaigns.",
+              },
+            ].map((item) => (
+              <article
+                key={item.title}
+                className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-6 transition duration-300 hover:border-white/[0.1] hover:bg-white/[0.05]"
+              >
+                <h3 className="text-lg font-semibold text-white">{item.title}</h3>
+                <p className="mt-3 text-sm leading-relaxed text-neutral-400">{item.description}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* How it works — headline + steps */}
       <section
         id="how"
@@ -250,7 +300,7 @@ export function HomePage() {
               across chains
             </h2>
             <p className="mt-5 max-w-xl text-base leading-relaxed text-neutral-400 sm:text-lg md:text-xl">
-              One deposit, one basket token. XCM handles the rest-your {APP_NATIVE_SYMBOL} is allocated across Hydration, Moonbeam, Acala and more.
+              One deposit, one basket token. XCM handles the rest, your {APP_NATIVE_SYMBOL} is allocated across Hydration, Moonbeam, Acala and more.
             </p>
           </div>
 
@@ -280,9 +330,9 @@ export function HomePage() {
               },
               {
                 step: "3",
-                title: "Earn Yield",
+                title: "Earn + Share",
                 description:
-                  "Earn yield from multiple DeFi protocols. Rebalance anytime. One token, multiple chains.",
+                  "Earn cross-chain yield, share your basket with friends, and unlock community rewards as TVL grows.",
                 icon: (
                   <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
@@ -321,7 +371,7 @@ export function HomePage() {
             <div className="text-center md:text-left">
               <p className="text-lg font-bold text-white mb-2">PolkaBasket</p>
               <p className="text-sm text-neutral-400 max-w-xs mx-auto md:mx-0">
-                The unified yield layer for the Polkadot ecosystem. Secure, automated, and cross-chain.
+                The unified cross-chain yield and social basket layer for Polkadot. Secure, automated, and community-driven.
               </p>
             </div>
             <div className="flex justify-center md:justify-end gap-6">
