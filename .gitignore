@@ -39,6 +39,8 @@ dist-ssr
 # Rust build artifacts
 /rust/pvm-contract/target
 
+
 # Deployment outputs
 /rust/pvm-contract/deployed_*
 /contracts/deployed_*
+.vercel

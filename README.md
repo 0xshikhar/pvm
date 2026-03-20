@@ -21,7 +21,6 @@
 ### Installation
 
 ```bash
-cd pvm
 npm install
 ```
 
@@ -30,6 +29,11 @@ npm install
 ```bash
 npm run dev
 ```
+
+## Paseo integration docs
+
+- `docs/PVM_INTEGRATION.md`
+- `docs/PASEO_E2E_TESTING.md`
 
 ## Architecture
 
