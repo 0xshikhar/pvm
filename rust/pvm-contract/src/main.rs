@@ -1,7 +1,7 @@
 #![no_main]
 #![no_std]
 
-use uapi::{HostFn, HostFnImpl as api, ReturnFlags};
+use uapi::{HostFn, HostFnImpl as api};
 
 #[panic_handler]
 fn panic(_info: &core::panic::PanicInfo) -> ! {
@@ -200,6 +200,13 @@ pub extern "C" fn deploy() {}
 #[no_mangle]
 #[polkavm_derive::polkavm_export]
 pub extern "C" fn call() {
+    // Read selector from input
+    let input_size = api::call_data_size();
+    if input_size < 4 {
+        api::return_value(uapi::ReturnFlags::REVERT, &[]);
+        return;
+    }
+
     let mut selector = [0u8; 4];
     api::call_data_copy(&mut selector, 0);
 
@@ -212,14 +219,15 @@ pub extern "C" fn call() {
     } else if selector == SELECTOR_VOLATILITY {
         handle_get_volatility();
     } else {
-        api::return_value(ReturnFlags::REVERT, &[]);
+        api::return_value(uapi::ReturnFlags::REVERT, &[]);
     }
 }
 
 fn handle_rebalance() {
-    let input_len = api::call_data_size();
-    if input_len < 36 {
-        api::return_value(ReturnFlags::REVERT, &[]);
+    let input_size = api::call_data_size();
+    if input_size < 36 {
+        api::return_value(uapi::ReturnFlags::REVERT, &[]);
+        return;
     }
 
     let mut input = [0u8; 320];
@@ -248,13 +256,14 @@ fn handle_rebalance() {
 
     let output = encode_u16_array_fixed(&final_weights, count);
     let output_len = 32 + 32 + count * 32;
-    api::return_value(ReturnFlags::empty(), &output[..output_len]);
+    api::return_value(uapi::ReturnFlags::empty(), &output[..output_len]);
 }
 
 fn handle_optimize() {
-    let input_len = api::call_data_size();
-    if input_len < 36 {
-        api::return_value(ReturnFlags::REVERT, &[]);
+    let input_size = api::call_data_size();
+    if input_size < 36 {
+        api::return_value(uapi::ReturnFlags::REVERT, &[]);
+        return;
     }
 
     let mut input = [0u8; 320];
@@ -280,13 +289,14 @@ fn handle_optimize() {
     let optimized = optimize_weights_internal(&weights, &para_ids, count);
     let output = encode_u16_array_fixed(&optimized, count);
     let output_len = 32 + 32 + count * 32;
-    api::return_value(ReturnFlags::empty(), &output[..output_len]);
+    api::return_value(uapi::ReturnFlags::empty(), &output[..output_len]);
 }
 
 fn handle_get_yields() {
-    let input_len = api::call_data_size();
-    if input_len < 36 {
-        api::return_value(ReturnFlags::REVERT, &[]);
+    let input_size = api::call_data_size();
+    if input_size < 36 {
+        api::return_value(uapi::ReturnFlags::REVERT, &[]);
+        return;
     }
 
     let mut input = [0u8; 320];
@@ -304,13 +314,14 @@ fn handle_get_yields() {
 
     let output = encode_u16_array_fixed(&yields, count);
     let output_len = 32 + 32 + count * 32;
-    api::return_value(ReturnFlags::empty(), &output[..output_len]);
+    api::return_value(uapi::ReturnFlags::empty(), &output[..output_len]);
 }
 
 fn handle_get_volatility() {
-    let input_len = api::call_data_size();
-    if input_len < 36 {
-        api::return_value(ReturnFlags::REVERT, &[]);
+    let input_size = api::call_data_size();
+    if input_size < 36 {
+        api::return_value(uapi::ReturnFlags::REVERT, &[]);
+        return;
     }
 
     let mut input = [0u8; 320];
@@ -328,5 +339,5 @@ fn handle_get_volatility() {
 
     let output = encode_u16_array_fixed(&volatilities, count);
     let output_len = 32 + 32 + count * 32;
-    api::return_value(ReturnFlags::empty(), &output[..output_len]);
+    api::return_value(uapi::ReturnFlags::empty(), &output[..output_len]);
 }

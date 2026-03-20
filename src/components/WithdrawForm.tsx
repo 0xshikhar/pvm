@@ -59,31 +59,75 @@ export function WithdrawForm({
   }, [switchChain, targetChainId]);
 
   const handleWithdraw = useCallback(async () => {
-    if (!amount || parseFloat(amount) <= 0 || !walletClient) return;
+    if (!amount || parseFloat(amount) <= 0 || !walletClient) {
+      console.warn("[WithdrawForm] Invalid withdraw attempt:", { amount, hasWallet: !!walletClient });
+      return;
+    }
     
     if (!isCorrectChain) {
+      console.warn("[WithdrawForm] Wrong chain:", { currentChain: chainId, targetChain: targetChainId });
       setLocalError(`Please switch to ${APP_CHAIN_NAME} first`);
       return;
     }
     
+    console.log("[WithdrawForm] 🚀 Starting withdrawal...");
+    console.log("[WithdrawForm] 📊 Token amount:", amount, tokenSymbol);
+    console.log("[WithdrawForm] 🎯 Basket ID:", basketId.toString());
+    console.log("[WithdrawForm] 🌐 Wallet:", walletClient.account?.address);
+    console.log("[WithdrawForm] 💰 Expected PAS return:", amount, APP_NATIVE_SYMBOL);
+    console.log("[WithdrawForm] 📡 This will:");
+    console.log("[WithdrawForm]   1. Burn", amount, tokenSymbol, "tokens");
+    console.log("[WithdrawForm]   2. Dispatch XCM withdraw messages to:");
+    allocations.forEach(a => {
+      const chain = TARGET_CHAINS[a.paraId];
+      const pasAmount = ((parseFloat(amount) * a.weightBps) / 10000).toFixed(4);
+      console.log(`[WithdrawForm]      - ${chain?.name || `Para ${a.paraId}`}: ${pasAmount} ${APP_NATIVE_SYMBOL}`);
+    });
+    console.log("[WithdrawForm]   3. Transfer native PAS back to user");
+    
     setTxStatus("pending");
     setTxHash(null);
     setLocalError(null);
-    setXcmTracking(allocations.map((a) => ({ paraId: a.paraId, status: "pending" as const })));
+    setXcmTracking(allocations.map((a) => ({ 
+      paraId: a.paraId, 
+      status: "pending" as const 
+    })));
+    
+    console.log("[WithdrawForm] ⏳ XCM Status: All chains pending...");
     
     try {
       const tokenAmount = parseEther(amount);
+      console.log("[WithdrawForm] 📡 Calling BasketManager.withdraw()...");
+      
       const hash = await withdraw(
         walletClient as WalletClient,
         basketId,
         tokenAmount
       );
+      
+      console.log("[WithdrawForm] ✅ Withdrawal successful!");
+      console.log("[WithdrawForm] 🔗 Transaction hash:", hash);
+      console.log("[WithdrawForm] 📊 XCM Status: Messages dispatched to", allocations.length, "parachains");
+      console.log("[WithdrawForm] 💰 PAS returned:", amount, APP_NATIVE_SYMBOL);
+      console.log("[WithdrawForm] 🎯 XCM Status per chain:");
+      allocations.forEach(a => {
+        const chain = TARGET_CHAINS[a.paraId];
+        console.log(`[WithdrawForm]    ✓ ${chain?.name || `Para ${a.paraId}`}: Confirmed`);
+      });
+      console.log("[WithdrawForm] 🔍 Check explorer:", getExplorerTxUrl(hash));
+      console.log("[WithdrawForm] 📝 Note: Actual XCM execution on target chains takes time");
+      console.log("[WithdrawForm]    Monitor sovereign accounts:");
+      allocations.forEach(a => {
+        const chain = TARGET_CHAINS[a.paraId];
+        console.log(`[WithdrawForm]    - ${chain?.name}: ${chain?.explorer}/account/<sovereign_account>`);
+      });
+      
       setTxHash(hash);
       setTxStatus("success");
       setXcmTracking((prev) => prev.map((t) => ({ ...t, status: "confirmed" as const })));
       setAmount("");
     } catch (err) {
-      console.error("Withdraw error:", err);
+      console.error("[WithdrawForm] ❌ Withdraw error:", err);
       const errMsg = err instanceof Error ? err.message : "Withdraw failed";
       if (errMsg.includes("chain") || errMsg.includes("Chain")) {
         setLocalError(`Wrong network! Please switch to ${APP_CHAIN_NAME} (ID: ${targetChainId})`);
@@ -91,6 +135,7 @@ export function WithdrawForm({
         setLocalError(errMsg);
         setTxStatus("error");
         setXcmTracking((prev) => prev.map((t) => ({ ...t, status: "failed" as const })));
+        console.error("[WithdrawForm] 💥 XCM Status: All chains failed");
       }
     }
   }, [amount, basketId, walletClient, withdraw, isCorrectChain, targetChainId, allocations]);

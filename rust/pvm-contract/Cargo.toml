@@ -21,6 +21,7 @@ path = "src/main.rs"
 opt-level = "s"
 lto = "fat"
 codegen-units = 1
+panic = "abort"
 
 [dependencies]
 polkavm-derive = { version = "0.26" }
